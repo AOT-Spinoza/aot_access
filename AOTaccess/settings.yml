@@ -1,0 +1,7 @@
+paths:
+  glmsingle: "/tank/shared/2024/visual/AOT/derivatives/glmsingle/mainexp"
+  fmriprep: "/tank/shared/2024/visual/AOT/derivatives/fmripreps/aotfull_preprocs/fullpreproc_forcesyn_endfix" 
+  bids: "/tank/shared/2024/visual/AOT/bids" 
+  videos: "/tank/shared/2024/visual/AOT/derivatives/stimuli/rescaled_final" 
+  AOTdesignsettings: "/tank/zhangs/AOT_code_repos/arrow_of_time_experiment/aot/data/experiment/settings/main"
+
