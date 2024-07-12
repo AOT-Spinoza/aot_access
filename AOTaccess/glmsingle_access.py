@@ -27,6 +27,24 @@ def read_betas(sub,ses,stctype = "nordicstc",glmtype = "TYPED_FITHRF_GLMDENOISE_
     print(f"Shape of betas: {betas.shape}")
     return betas
 
+def read_meanvol(sub,ses,stctype = "nordicstc",glmtype = "TYPED_FITHRF_GLMDENOISE_RR"):
+    nii_dir = get_nii_dir_path(sub,ses,stctype,glmtype)
+    meanvol_file = nii_dir / "meanvol.nii"
+    meanvol = nib.load(meanvol_file).get_fdata()
+    print(f"Loaded meanvol from {meanvol_file}")
+    print(f"Shape of meanvol: {meanvol.shape}")
+    return meanvol
+
+def read_R2(sub,ses,stctype = "nordicstc",glmtype = "TYPED_FITHRF_GLMDENOISE_RR"):
+    nii_dir = get_nii_dir_path(sub,ses,stctype,glmtype)
+    R2_file = nii_dir / "R2.nii"
+    R2 = nib.load(R2_file).get_fdata()
+    print(f"Loaded R2 from {R2_file}")
+    print(f"Shape of R2: {R2.shape}")
+    return R2
+
+
+
 
 
 
