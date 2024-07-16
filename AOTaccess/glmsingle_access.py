@@ -50,5 +50,7 @@ def read_R2(sub,ses,stctype = "nordicstc",glmtype = "TYPED_FITHRF_GLMDENOISE_RR"
 
 
 
+
+
     
     
