@@ -23,3 +23,33 @@ class StimuliInfoAccess:
         return (
             self.video_annotation_dir / f"{video_id}_{direction}.mp4" / annotation_type
         )
+
+    def get_llama_description(self, video_id, direction="fw"):
+        pass
+
+    def get_sbert_embeddings(self, video_id, direction="fw"):
+        pass
+
+    def get_semantic_segmentation(self, video_id, direction="fw"):
+        pass
+
+    def get_action_detection(self, video_id, direction="fw"):
+        pass
+
+    def get_action_classification(self, video_id, direction="fw"):
+        pass
+
+    def get_captioning(self, video_id, direction="fw"):
+        pass
+
+    def get_depth_estimation(self, video_id, direction="fw"):
+        pass
+
+    def get_keypoint_detection(self, video_id, direction="fw"):
+        pass
+
+    def get_instance_segmentation(self, video_id, direction="fw"):
+        pass
+
+    def get_object_detection(self, video_id, direction="fw"):
+        pass
