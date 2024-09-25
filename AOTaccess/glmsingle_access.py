@@ -11,7 +11,7 @@ class GLMSingleAccess:
 
         basedir = Path(__file__).resolve().parent
         settings = yaml.safe_load(open(basedir / "settings.yml"))
-        glmsingle_dir = Path(settings["paths"]["glmsingle"])
+        self.glmsingle_dir = Path(settings["paths"]["glmsingle"])
 
         self.sub = sub
         self.ses = ses
