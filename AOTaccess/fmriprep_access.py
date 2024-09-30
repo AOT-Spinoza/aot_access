@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 import yaml
+import nibabel as nib
 
 
 class FmriprepAccess:
@@ -21,7 +22,11 @@ class FmriprepAccess:
             self.fmriprep_dir
             / f"sub-{self.sub:03d}_ses-{self.ses:02d}_task-AOT_rec-nordicstc_run-{run}_space-T1w_desc-preproc_part-mag_bold.nii.gz"
         )
-        return bold_file
+
+        bold = nib.load(bold_file)
+        print(f"Loaded bold from {bold_file}")
+        print(f"Shape of bold: {bold.shape}")
+        return bold
 
     def get_boldref_file_T1w(self, run):
         """
@@ -31,7 +36,11 @@ class FmriprepAccess:
             self.fmriprep_dir
             / f"sub-{self.sub:03d}_ses-{self.ses:02d}_task-AOT_rec-nordicstc_run-{run}_space-T1w_part-mag_boldref.nii.gz"
         )
-        return boldref_file
+
+        boldref = nib.load(boldref_file)
+        print(f"Loaded boldref from {boldref_file}")
+        print(f"Shape of boldref: {boldref.shape}")
+        return boldref
 
     def get_bold_file_fsnative_L(self, run):
         pass
