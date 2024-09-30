@@ -49,3 +49,8 @@ class GLMSingleAccess:
         print(f"Loaded R2 from {R2_file}")
         print(f"Shape of R2: {R2.shape}")
         return R2
+
+    def read_video_beta(
+        self, video_num, direction="fw", glmtype="TYPED_FITHRF_GLMDENOISE_RR"
+    ):
+        pass
