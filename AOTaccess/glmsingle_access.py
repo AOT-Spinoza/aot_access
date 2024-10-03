@@ -16,11 +16,9 @@ class GLMSingleAccess:
         self.sub = sub
         self.ses = ses
         self.stctype = stctype
-        self.glmsingle_dir = self.get_glmsingle_dir(sub, ses, stctype)
-
-    def get_glmsingle_dir(self, sub, ses, stctype):
-        glmsingle_dir = self.glmsingle_dir / f"sub-{sub:03d}/ses-{ses:02d}/{stctype}"
-        return glmsingle_dir
+        self.glmsingle_dir = (
+            self.glmsingle_dir / f"sub-{sub:03d}_ses-{ses:02d}_T1W_{stctype}"
+        )
 
     def get_nii_dir_path(self, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
         glm_type_dir = self.glmsingle_dir / glmtype

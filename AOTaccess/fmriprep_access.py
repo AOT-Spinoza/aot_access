@@ -14,7 +14,7 @@ class FmriprepAccess:
         self.ses = ses
         self.fmriprep_dir = self.root_fmriprep_dir / f"sub-{sub:03d}/ses-{ses:02d}/func"
 
-    def get_bold_file_T1w(self, run):
+    def read_bold_file_T1w(self, run):
         """
         example : sub-001_ses-01_task-AOT_rec-nordicstc_run-1_space-T1w_desc-preproc_part-mag_bold.nii.gz
         """
@@ -28,7 +28,7 @@ class FmriprepAccess:
         print(f"Shape of bold: {bold.shape}")
         return bold
 
-    def get_boldref_file_T1w(self, run):
+    def read_boldref_file_T1w(self, run):
         """
         example : sub-001_ses-01_task-AOT_rec-nordicstc_run-1_space-T1w_part-mag_boldref.nii.gz
         """
@@ -42,14 +42,14 @@ class FmriprepAccess:
         print(f"Shape of boldref: {boldref.shape}")
         return boldref
 
-    def get_bold_file_fsnative_L(self, run):
+    def read_bold_file_fsnative_L(self, run):
         pass
 
-    def get_bold_file_fsnative_R(self, run):
+    def read_bold_file_fsnative_R(self, run):
         pass
 
-    def get_bold_file_fsaverage_L(self, run):
+    def read_bold_file_fsaverage_L(self, run):
         pass
 
-    def get_bold_file_fsaverage_R(self, run):
+    def read_bold_file_fsaverage_R(self, run):
         pass

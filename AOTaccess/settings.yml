@@ -6,3 +6,6 @@ paths:
   video_annotations: "/tank/shared/2024/visual/AOT/derivatives/stimuli/annotations"
   AOTdesignsettings: "/tank/zhangs/AOT_code_repos/arrow_of_time_experiment/aot/data/experiment/settings/main"
 
+parameters:
+  run_number: 10
+
