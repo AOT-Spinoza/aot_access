@@ -7,41 +7,52 @@ import nibabel as nib
 
 
 class GLMSingleAccess:
-    def __init__(self, sub, ses, stctype="nordicstc"):
+    def __init__(self, stctype="nordicstc"):
 
         basedir = Path(__file__).resolve().parent
         settings = yaml.safe_load(open(basedir / "settings.yml"))
-        self.glmsingle_dir = Path(settings["paths"]["glmsingle"])
+        self.glmsingle_main_dir = Path(settings["paths"]["glmsingle"]) / "mainexp"
 
-        self.sub = sub
-        self.ses = ses
+        self.video_betas_dir = Path(settings["paths"]["glmsingle"]) / "video_betas"
         self.stctype = stctype
-        self.glmsingle_dir = (
-            self.glmsingle_dir / f"sub-{sub:03d}_ses-{ses:02d}_T1W_{stctype}"
-        )
 
-    def get_nii_dir_path(self, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
-        glm_type_dir = self.glmsingle_dir / glmtype
+    def get_glm_dir_path(self):
+        return self.glmsingle_main_dir
+
+    def get_nii_dir_path(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+        glm_type_dir = (
+            self.glmsingle_main_dir
+            / f"sub-{sub:03d}_ses-{ses:02d}_T1W_{self.stctype}"
+            / glmtype
+        )
         return glm_type_dir
 
-    def read_betas(self, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
-        nii_dir = self.get_nii_dir_path(glmtype)
+    def read_betas(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         betas_file = nii_dir / "betasmd.nii"
         betas = nib.load(betas_file).get_fdata()
         print(f"Loaded betas from {betas_file}")
         print(f"Shape of betas: {betas.shape}")
         return betas
 
-    def read_meanvol(self, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
-        nii_dir = self.get_nii_dir_path(glmtype)
+    def read_affine(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
+        betas_file = nii_dir / "betasmd.nii"
+        betas = nib.load(betas_file)
+        affine = betas.affine
+        print(f"Loaded affine from {betas_file}")
+        return affine
+
+    def read_meanvol(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         meanvol_file = nii_dir / "meanvol.nii"
         meanvol = nib.load(meanvol_file).get_fdata()
         print(f"Loaded meanvol from {meanvol_file}")
         print(f"Shape of meanvol: {meanvol.shape}")
         return meanvol
 
-    def read_R2(self, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
-        nii_dir = self.get_nii_dir_path(glmtype)
+    def read_R2(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         R2_file = nii_dir / "R2.nii"
         R2 = nib.load(R2_file).get_fdata()
         print(f"Loaded R2 from {R2_file}")
@@ -51,4 +62,18 @@ class GLMSingleAccess:
     def read_video_beta(
         self, video_num, direction="fw", glmtype="TYPED_FITHRF_GLMDENOISE_RR"
     ):
-        pass
+        beta_file = (
+            self.video_betas_dir
+            / f"sub-{self.sub:03d}"
+            / f"video{video_num:4d}_{direction}_betas.nii"
+        )
+
+        if not os.path.exists(beta_file):
+            print(f"File {beta_file} does not exist")
+            return None
+
+        beta = nib.load(beta_file).get_fdata()
+        print(f"Loaded beta from {beta_file}")
+        print(f"Shape of beta: {beta.shape}")
+
+        return beta
