@@ -60,11 +60,11 @@ class GLMSingleAccess:
         return R2
 
     def read_video_beta(
-        self, video_num, direction="fw", glmtype="TYPED_FITHRF_GLMDENOISE_RR"
+        self, sub, video_num, direction="fw", glmtype="TYPED_FITHRF_GLMDENOISE_RR"
     ):
         beta_file = (
             self.video_betas_dir
-            / f"sub-{self.sub:03d}"
+            / f"sub-{sub:03d}"
             / f"video{video_num:4d}_{direction}_betas.nii"
         )
 
