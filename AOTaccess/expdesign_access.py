@@ -25,7 +25,8 @@ class ExpDesignAccess:
         print(f"Loaded expdesign from {expdesign_file}")
         return expdesign
 
-    def append_all_trails_without_blanks(self, sub, ses):
+    def append_all_trails_without_blanks(self, sub: int, ses: int):
+        """ """
         session_trails_without_blanks = []
         for run in range(1, self.run_number + 1):
             expdesign = self.read_expdesign_file(sub, ses, run)
