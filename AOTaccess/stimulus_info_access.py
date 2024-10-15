@@ -13,7 +13,7 @@ class StimuliInfoAccess:
         self.video_dir = Path(settings["paths"]["videos"])
         self.video_annotation_dir = Path(settings["paths"]["video_annotations"])
 
-    def get_video_path(self, video_id, direction="fw"):
+    def get_video_path(self, video_id: int, direction: str = "fw"):
         return self.video_dir / f"{video_id:04d}_{direction}.mp4"
 
     def get_video_annotation_dir(
@@ -25,7 +25,7 @@ class StimuliInfoAccess:
             / annotation_type
         )
 
-    def _temp_read_llama_description(self, video_id, direction="fw"):
+    def _temp_read_llama_description(self, video_id: int, direction: str = "fw"):
         # example : /tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
         temp_root_dir = Path(
             "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean"
@@ -34,7 +34,7 @@ class StimuliInfoAccess:
         with open(temp_file, "r") as f:
             return f.read()
 
-    def _temp_read_sbert_embeddings(self, video_id, direction="fw"):
+    def _temp_read_sbert_embeddings(self, video_id: int, direction: str = "fw"):
         # example : /tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings/0001_fw.npy
         temp_root_dir = Path(
             "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
@@ -42,33 +42,33 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
 
-    def _temp_read_motion_energy_features(self, video_id, direction="fw"):
+    def _temp_read_motion_energy_features(self, video_id: int, direction: str = "fw"):
         temp_root_dir = Path(
             "/tank/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
         )
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
 
-    def read_semantic_segmentation(self, video_id, direction="fw"):
+    def read_semantic_segmentation(self, video_id: int, direction: str = "fw"):
         pass
 
-    def read_action_detection(self, video_id, direction="fw"):
+    def read_action_detection(self, video_id: int, direction: str = "fw"):
         pass
 
-    def read_action_classification(self, video_id, direction="fw"):
+    def read_action_classification(self, video_id: int, direction: str = "fw"):
         pass
 
-    def read_captioning(self, video_id, direction="fw"):
+    def read_captioning(self, video_id: int, direction: str = "fw"):
         pass
 
-    def read_depth_estimation(self, video_id, direction="fw"):
+    def read_depth_estimation(self, video_id: int, direction: str = "fw"):
         pass
 
-    def read_keypoint_detection(self, video_id, direction="fw"):
+    def read_keypoint_detection(self, video_id: int, direction: str = "fw"):
         pass
 
-    def read_instance_segmentation(self, video_id, direction="fw"):
+    def read_instance_segmentation(self, video_id: int, direction: str = "fw"):
         pass
 
-    def read_object_detection(self, video_id, direction="fw"):
+    def read_object_detection(self, video_id: int, direction: str = "fw"):
         pass

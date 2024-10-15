@@ -12,7 +12,7 @@ class ExpDesignAccess:
         self.root_expdesign_dir = Path(settings["paths"]["AOTdesignsettings"])
         self.run_number = settings["parameters"]["run_number"]
 
-    def read_expdesign_file(self, sub, ses, run):
+    def read_expdesign_file(self, sub: int, ses: int, run: int):
         """
         example : /tank/zhangs/AOT_code_repos/arrow_of_time_experiment/aot/data/experiment/settings/main/experiment_settings_sub_01_ses_01_run_01.yml
         """

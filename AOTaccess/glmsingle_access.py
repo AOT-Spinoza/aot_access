@@ -19,7 +19,9 @@ class GLMSingleAccess:
     def get_glm_dir_path(self):
         return self.glmsingle_main_dir
 
-    def get_nii_dir_path(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+    def get_nii_dir_path(
+        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+    ):
         glm_type_dir = (
             self.glmsingle_main_dir
             / f"sub-{sub:03d}_ses-{ses:02d}_T1W_{self.stctype}"
@@ -27,7 +29,9 @@ class GLMSingleAccess:
         )
         return glm_type_dir
 
-    def read_betas(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+    def read_betas(
+        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+    ):
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         betas_file = nii_dir / "betasmd.nii"
         betas = nib.load(betas_file).get_fdata()
@@ -35,7 +39,9 @@ class GLMSingleAccess:
         print(f"Shape of betas: {betas.shape}")
         return betas
 
-    def read_affine(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+    def read_affine(
+        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+    ):
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         betas_file = nii_dir / "betasmd.nii"
         betas = nib.load(betas_file)
@@ -43,7 +49,9 @@ class GLMSingleAccess:
         print(f"Loaded affine from {betas_file}")
         return affine
 
-    def read_meanvol(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+    def read_meanvol(
+        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+    ):
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         meanvol_file = nii_dir / "meanvol.nii"
         meanvol = nib.load(meanvol_file).get_fdata()
@@ -51,7 +59,7 @@ class GLMSingleAccess:
         print(f"Shape of meanvol: {meanvol.shape}")
         return meanvol
 
-    def read_R2(self, sub, ses, glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+    def read_R2(self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"):
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         R2_file = nii_dir / "R2.nii"
         R2 = nib.load(R2_file).get_fdata()
@@ -60,7 +68,11 @@ class GLMSingleAccess:
         return R2
 
     def read_video_beta(
-        self, sub, video_num, direction="fw", glmtype="TYPED_FITHRF_GLMDENOISE_RR"
+        self,
+        sub: int,
+        video_num: int,
+        direction: str = "fw",
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
     ):
         beta_file = (
             self.video_betas_dir
