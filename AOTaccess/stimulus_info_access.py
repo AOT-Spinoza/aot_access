@@ -42,6 +42,13 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
 
+    def _temp_read_motion_energy_features(self, video_id, direction="fw"):
+        temp_root_dir = Path(
+            "/tank/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
+        )
+        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
+        return np.load(temp_file)
+
     def read_semantic_segmentation(self, video_id, direction="fw"):
         pass
 
