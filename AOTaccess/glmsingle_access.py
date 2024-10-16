@@ -77,7 +77,7 @@ class GLMSingleAccess:
         beta_file = (
             self.video_betas_dir
             / f"sub-{sub:03d}"
-            / f"video{video_num:4d}_{direction}_betas.nii"
+            / f"{video_num:4d}_{direction}_betas.nii"
         )
 
         if not os.path.exists(beta_file):
