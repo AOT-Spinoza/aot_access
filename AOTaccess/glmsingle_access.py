@@ -67,7 +67,7 @@ class GLMSingleAccess:
         print(f"Shape of R2: {R2.shape}")
         return R2
 
-    def read_video_beta(
+    def read_video_betas(
         self,
         sub: int,
         video_num: int,
