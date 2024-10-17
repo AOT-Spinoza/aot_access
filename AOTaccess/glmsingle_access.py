@@ -77,15 +77,14 @@ class GLMSingleAccess:
         beta_file = (
             self.video_betas_dir
             / f"sub-{sub:03d}"
-            / f"{video_num:4d}_{direction}_betas.nii"
+            / f"{video_num:04d}_{direction}_betas.nii"
         )
 
         if not os.path.exists(beta_file):
             print(f"File {beta_file} does not exist")
             return None
-
-        beta = nib.load(beta_file).get_fdata()
-        print(f"Loaded beta from {beta_file}")
-        print(f"Shape of beta: {beta.shape}")
-
-        return beta
+        else:
+            beta = nib.load(beta_file).get_fdata()
+            print(f"Loaded beta from {beta_file}")
+            print(f"Shape of beta: {beta.shape}")
+            return beta
