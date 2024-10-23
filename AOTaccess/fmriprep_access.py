@@ -6,12 +6,10 @@ import nibabel as nib
 
 
 class FmriprepAccess:
-    def __init__(self, sub, ses):
+    def __init__(self):
         basedir = Path(__file__).resolve().parent
         settings = yaml.safe_load(open(basedir / "settings.yml"))
         self.root_fmriprep_dir = Path(settings["paths"]["fmriprep"])
-        self.sub = sub
-        self.ses = ses
 
     def read_bold_file_T1w(self, sub, ses, run):
         """
@@ -44,6 +42,23 @@ class FmriprepAccess:
         print(f"Loaded boldref from {boldref_file}")
         print(f"Shape of boldref: {boldref.shape}")
         return boldref
+
+    def read_brain_mask_file_T1w(self, sub, ses):
+        """
+        example :sub-001_ses-01_task-AOT_run-1_space-T1w_desc-brain_mask.nii.gz
+        """
+
+        brain_mask_file = (
+            self.fmriprep_dir
+            / f"sub-{sub:03d}"
+            / f"ses-{ses:02d}"
+            / f"sub-{sub:03d}_ses-{ses:02d}_task-AOT_run-1_space-T1w_desc-brain_mask.nii.gz"
+        )
+
+        brain_mask = nib.load(brain_mask_file).get_fdata().astype(bool)
+        print(f"Loaded brain mask from {brain_mask_file}")
+        print(f"Shape of brain mask: {brain_mask.shape}")
+        return brain_mask
 
     def read_bold_file_fsnative_L(self, sub, ses, run):
         pass
