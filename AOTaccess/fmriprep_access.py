@@ -47,7 +47,7 @@ class FmriprepAccess:
 
     def read_brain_mask_file_T1w(self, sub, ses):
         """
-        example :sub-001_ses-01_task-AOT_run-1_space-T1w_desc-brain_mask.nii.gz
+        example :sub-001_ses-01_task-AOT_rec-nordicstc_run-1_space-T1w_desc-brain_part-mag_mask.nii.gz
         """
 
         brain_mask_file = (
@@ -55,7 +55,7 @@ class FmriprepAccess:
             / f"sub-{sub:03d}"
             / f"ses-{ses:02d}"
             / "func"
-            / f"sub-{sub:03d}_ses-{ses:02d}_task-AOT_run-1_space-T1w_desc-brain_part-mag_mask.nii.gz"
+            / f"sub-{sub:03d}_ses-{ses:02d}_task-AOT_rec-nordicstc_run-1_space-T1w_desc-brain_part-mag_mask.nii.gz"
         )
 
         brain_mask = nib.load(brain_mask_file).get_fdata().astype(bool)
