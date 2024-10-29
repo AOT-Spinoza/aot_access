@@ -67,6 +67,19 @@ class GLMSingleAccess:
         print(f"Shape of R2: {R2.shape}")
         return R2
 
+    def read_R2_mask(
+        self,
+        sub: int,
+        ses: int,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        threshold: float = 0.2,
+    ):
+        R2 = self.read_R2(sub, ses, glmtype)
+        R2_mask = R2 > threshold
+        R2_mask = R2_mask.astype(bool)
+        print(f"Shape of R2 mask: {R2_mask.shape}")
+        return R2_mask
+
     def read_video_betas(
         self,
         sub: int,
