@@ -29,6 +29,12 @@ class GLMSingleAccess:
         )
         return glm_type_dir
 
+    def read_shape(
+        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+    ):
+        R2 = self.read_R2(sub, ses, glmtype)
+        return R2.shape
+
     def read_betas(
         self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
     ):
