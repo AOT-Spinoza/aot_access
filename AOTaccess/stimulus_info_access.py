@@ -35,9 +35,9 @@ class StimuliInfoAccess:
             return f.read()
 
     def _temp_read_sbert_embeddings(self, video_id: int, direction: str = "fw"):
-        # example : /tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings/0001_fw.npy
         temp_root_dir = Path(
-            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
+            # "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
+            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert_all-mpnet-base-v2/simple_describe_en_withsample_cleaned_embeddings_averaged"
         )
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
