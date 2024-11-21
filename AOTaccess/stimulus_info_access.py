@@ -34,6 +34,15 @@ class StimuliInfoAccess:
         with open(temp_file, "r") as f:
             return f.read()
 
+    def _temp_read_llama_description_v2(self, video_id: int, direction: str = "fw"):
+        # example : /tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
+        temp_root_dir = Path(
+            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/withsample_t0.2_r1_v2.1"
+        )
+        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
+        with open(temp_file, "r") as f:
+            return f.read()
+
     def _temp_read_sbert_embeddings(self, video_id: int, direction: str = "fw"):
         temp_root_dir = Path(
             # "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
