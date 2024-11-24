@@ -14,7 +14,7 @@ class ExpDesignAccess:
 
     def read_expdesign_file(self, sub: int, ses: int, run: int):
         """
-        example : /tank/zhangs/AOT_code_repos/arrow_of_time_experiment/aot/data/experiment/settings/main/experiment_settings_sub_01_ses_01_run_01.yml
+        Read expdesign file for a specific subject, session and run
         """
         expdesign_file = (
             self.root_expdesign_dir
@@ -26,7 +26,9 @@ class ExpDesignAccess:
         return expdesign
 
     def append_all_trails_without_blanks(self, sub: int, ses: int):
-        """ """
+        """
+        Append all trails without blanks from all runs of a session
+        """
         session_trails_without_blanks = []
         for run in range(1, self.run_number + 1):
             expdesign = self.read_expdesign_file(sub, ses, run)

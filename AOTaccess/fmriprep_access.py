@@ -62,15 +62,3 @@ class FmriprepAccess:
         print(f"Loaded brain mask from {brain_mask_file}")
         print(f"Shape of brain mask: {brain_mask.shape}")
         return brain_mask
-
-    def read_bold_file_fsnative_L(self, sub, ses, run):
-        pass
-
-    def read_bold_file_fsnative_R(self, sub, ses, run):
-        pass
-
-    def read_bold_file_fsaverage_L(self, sub, ses, run):
-        pass
-
-    def read_bold_file_fsaverage_R(self, sub, ses, run):
-        pass
