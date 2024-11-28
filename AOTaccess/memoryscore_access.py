@@ -81,4 +81,21 @@ class MemoryScoreAccess:
     def memorability_list_from_session(self, sub: int, ses: int):
         expdesignaccess = ExpDesignAccess()
 
+        session_uniqe_video_indexes = expdesignaccess.get_session_uniqe_video_indexes(
+            sub, ses
+        )
         memory_csv = self.read_memory_csv_cleaned(sub, ses)
+        memorability_list = []
+        for row in memory_csv:
+            video_index = row["video_index"]
+            response = row["response"]
+            if response is not None:
+                if video_index in session_uniqe_video_indexes:
+                    memorability_list.append(
+                        {"video_index": video_index, "response": response}
+                    )
+
+        print(
+            f"memorability_list length for sub {sub} ses {ses}: {len(memorability_list)}"
+        )
+        return memorability_list

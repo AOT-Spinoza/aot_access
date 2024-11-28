@@ -55,7 +55,7 @@ class ExpDesignAccess:
 
         return session_trails_without_blanks
 
-    def get_session_uniqe_video_indexed(self, sub: int, ses: int):
+    def get_session_uniqe_video_indexes(self, sub: int, ses: int):
         sessions_movies = self.append_all_trails_without_blanks(sub, ses)
         video_indexes = [movie_name.split("_")[0] for movie_name in sessions_movies]
         unique_video_indexes = list(set(video_indexes))
