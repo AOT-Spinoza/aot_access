@@ -99,3 +99,12 @@ class MemoryScoreAccess:
             f"memorability_list length for sub {sub} ses {ses}: {len(memorability_list)}"
         )
         return memorability_list
+
+    def memorability_list_from_all_sessions(self, sub: int):
+        pass
+
+    def memorability_result_per_video(self, sub: int, video_index: int):
+        memorability_list = self.memorability_list_from_all_sessions(sub)
+        for row in memorability_list:
+            if row["video_index"] == video_index:
+                return row["response"]
