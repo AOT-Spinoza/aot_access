@@ -54,3 +54,25 @@ class ExpDesignAccess:
         )
 
         return session_trails_without_blanks
+
+    def get_session_uniqe_video_indexed(self, sub: int, ses: int):
+        def desuffix(name):
+            return name[:-3]  # remove the suffix _fw or _rv
+
+        sessions_movies = self.append_all_trails_without_blanks(sub, ses)
+        video_names = []
+        for movies in sessions_movies:
+            for movie in movies:
+                video_names.append(movie.split("/")[-1].split(".")[0])
+        videoset = set(video_names)
+        new_video_list = []
+        for video in videoset:
+            new_video_list.append(desuffix(video))
+
+        videoset = set(new_video_list)
+        print(
+            "unique video number sub {sub} ses {ses}: ".format(sub=sub, ses=ses),
+            len(videoset),
+        )
+
+        return videoset
