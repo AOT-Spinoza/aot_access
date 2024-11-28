@@ -25,6 +25,20 @@ class ExpDesignAccess:
         print(f"Loaded expdesign from {expdesign_file}")
         return expdesign
 
+    def read_session_expdesign(self, sub: int, ses: int):
+        """
+        Read expdesign file for a specific subject and session
+        """
+        run_number = self.run_number
+        session_expdesign = [
+            self.read_expdesign_file(sub, ses, run) for run in range(1, run_number + 1)
+        ]
+        sessions_movies = [
+            settings["stimuli"]["movie_files"] for settings in session_expdesign
+        ]
+        print(f"Loaded expdesign for session {ses} of subject {sub}")
+        return sessions_movies
+
     def append_all_trails_without_blanks(self, sub: int, ses: int):
         """
         Append all trails without blanks from all runs of a session

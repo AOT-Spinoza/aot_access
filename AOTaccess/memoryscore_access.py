@@ -5,6 +5,7 @@ import os
 import yaml
 import bids
 import csv
+from AOTaccess.expdesign_access import ExpDesignAccess
 
 
 basedir = Path(__file__).resolve().parent
