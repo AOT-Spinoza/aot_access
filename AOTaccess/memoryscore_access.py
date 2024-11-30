@@ -71,7 +71,7 @@ class MemoryScoreAccess:
 
     def read_memory_edf(
         self, sub: int, ses: int
-    ):  ###############################################################################
+    ):  #####################################################################################
         memory_dir = self.get_memory_dir(sub, ses)
         sub = str(sub).zfill(3)
         ses = str(ses).zfill(2)
