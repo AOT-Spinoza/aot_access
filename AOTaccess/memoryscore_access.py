@@ -3,7 +3,6 @@ from pathlib import Path
 import sys
 import os
 import yaml
-import bids
 import csv
 from AOTaccess.expdesign_access import ExpDesignAccess
 
@@ -18,7 +17,10 @@ class MemoryScoreAccess:
         pass
 
     def get_memory_dir(self, sub: int, ses: int):
-        pass
+        sub = str(sub).zfill(3)
+        ses = str(ses).zfill(2)
+        memory_dir = self.bids_dir / f"sub-{sub}/ses-{ses}/beh"
+        return memory_dir
 
     def read_memory_csv(self, sub: int, ses: int):
         memory_dir = self.get_memory_dir(sub, ses)
