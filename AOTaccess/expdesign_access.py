@@ -55,7 +55,17 @@ class ExpDesignAccess:
 
         return session_trails_without_blanks
 
+    def get_session_video_indexes(self, sub: int, ses: int):
+        "return video indexes number string for a session"
+        sessions_movies = self.append_all_trails_without_blanks(sub, ses)
+        video_indexes = [movie_name.split("_")[0] for movie_name in sessions_movies]
+        print(
+            f"Got video indexes for session {ses} of subject {sub}, length: {len(video_indexes)}"
+        )
+        return video_indexes
+
     def get_session_uniqe_video_indexes(self, sub: int, ses: int):
+        "return unique video indexes number string for a session"
         sessions_movies = self.append_all_trails_without_blanks(sub, ses)
         video_indexes = [movie_name.split("_")[0] for movie_name in sessions_movies]
         unique_video_indexes = list(set(video_indexes))
