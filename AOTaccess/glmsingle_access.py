@@ -17,11 +17,13 @@ class GLMSingleAccess:
         self.stctype = stctype
 
     def get_glm_dir_path(self):
+        "get path to glmsingle directory"
         return self.glmsingle_main_dir
 
     def get_nii_dir_path(
         self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
     ):
+        "get path to nii directory for a single subject and session"
         glm_type_dir = (
             self.glmsingle_main_dir
             / f"sub-{sub:03d}_ses-{ses:02d}_T1W_{self.stctype}"
@@ -32,12 +34,14 @@ class GLMSingleAccess:
     def read_shape(
         self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
     ):
+        "get shape of betas for a single subject and session"
         R2 = self.read_R2(sub, ses, glmtype)
         return R2.shape
 
     def read_betas(
         self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
     ):
+        "get betas for a single subject and session"
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         betas_file = nii_dir / "betasmd.nii"
         betas = nib.load(betas_file).get_fdata()
@@ -48,6 +52,7 @@ class GLMSingleAccess:
     def read_affine(
         self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
     ):
+        "get affine matrix for a single subject and session"
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         betas_file = nii_dir / "betasmd.nii"
         betas = nib.load(betas_file)
@@ -58,6 +63,7 @@ class GLMSingleAccess:
     def read_meanvol(
         self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
     ):
+        "get meanvol for a single subject and session"
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         meanvol_file = nii_dir / "meanvol.nii"
         meanvol = nib.load(meanvol_file).get_fdata()
@@ -66,6 +72,7 @@ class GLMSingleAccess:
         return meanvol
 
     def read_R2(self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"):
+        "get R2 values for a single subject and session"
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
         R2_file = nii_dir / "R2.nii"
         R2 = nib.load(R2_file).get_fdata()
@@ -80,6 +87,7 @@ class GLMSingleAccess:
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         threshold: float = 0.2,
     ):
+        "get mask of R2 values above threshold"
         R2 = self.read_R2(sub, ses, glmtype)
         R2_mask = R2 > threshold
         R2_mask = R2_mask.astype(bool)
@@ -93,6 +101,7 @@ class GLMSingleAccess:
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
     ):
+        "get betas for a single video that repeats twice"
         beta_file = (
             self.video_betas_dir
             / f"sub-{sub:03d}"
