@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "AOTaccess"
+version = "0.0.1" # Replace this with the value dynamically loaded by `get_version`
+description = "API for accessing the AOT data"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Shufan Zhang", email = "s.zhang2@vu.nl" }]
+maintainers = [{ name = "Shufan Zhang", email = "s.zhang2@vu.nl" }]
+keywords = ["API", "neuroimaging", "fmri"]
+classifiers = [
+    'Intended Audience :: Science/Research',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved',
+    'Programming Language :: Python',
+    'Topic :: Software Development',
+    'Topic :: Scientific/Engineering',
+    'Operating System :: POSIX',
+    'Operating System :: Unix',
+    'Operating System :: MacOS',
+]
+
+# requires-python = ">=3.7, <3.12"
+dependencies = [
+    "matplotlib",
+    "pandas",
+    "numpy",
+    "ipython",
+    "tables",
+    "h5py",
+    "nibabel",
+    "scipy",
+    "pyyaml",
+    "pathlib",
+    "pybids",
+]
+
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "flake8"]
+
+[tool.setuptools]
+packages = ["AOTaccess"]
+package-data = { AOTaccess = ['temp/*.ipynb'] }
