@@ -73,3 +73,7 @@ class ExpDesignAccess:
             f"Got unique video indexes for session {ses} of subject {sub}, length: {len(unique_video_indexes)}"
         )
         return unique_video_indexes
+
+    def get_session_id_from_video_id(sub: int, video_id: int):
+        "return session id from video id"
+        pass

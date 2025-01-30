@@ -100,6 +100,7 @@ class GLMSingleAccess:
         video_num: int,
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        # space: str =
     ):
         "get betas for a single video that repeats twice"
         beta_file = (
