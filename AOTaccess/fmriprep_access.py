@@ -7,13 +7,32 @@ import nibabel as nib
 
 class FmriprepAccess:
     def __init__(self):
+        """
+        Initialize the FmriprepAccess instance.
+
+        Loads the root fmriprep directory from the settings.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        """
         basedir = Path(__file__).resolve().parent
         settings = yaml.safe_load(open(basedir / "settings.yml"))
         self.root_fmriprep_dir = Path(settings["paths"]["fmriprep"])
 
     def read_bold_file_T1w(self, sub, ses, run):
         """
-        example : sub-001_ses-01_task-AOT_rec-nordicstc_run-1_space-T1w_desc-preproc_part-mag_bold.nii.gz
+        Load and return the preprocessed BOLD image in T1w space for a specific subject, session, and run.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+            run (int): Run number.
+
+        Returns:
+            nibabel.Nifti1Image: Loaded BOLD image.
         """
         bold_file = (
             self.root_fmriprep_dir
@@ -30,7 +49,15 @@ class FmriprepAccess:
 
     def read_boldref_file_T1w(self, sub, ses, run):
         """
-        example : sub-001_ses-01_task-AOT_rec-nordicstc_run-1_space-T1w_part-mag_boldref.nii.gz
+        Load and return the BOLD reference image in T1w space for a specific subject, session, and run.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+            run (int): Run number.
+
+        Returns:
+            nibabel.Nifti1Image: Loaded BOLD reference image.
         """
         boldref_file = (
             self.root_fmriprep_dir
@@ -47,9 +74,15 @@ class FmriprepAccess:
 
     def read_brain_mask_file_T1w(self, sub, ses):
         """
-        example :sub-001_ses-01_task-AOT_rec-nordicstc_run-1_space-T1w_desc-brain_part-mag_mask.nii.gz
-        """
+        Load and return the brain mask in T1w space for a specific subject and session.
 
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+
+        Returns:
+            numpy.ndarray: Boolean array representing the brain mask.
+        """
         brain_mask_file = (
             self.root_fmriprep_dir
             / f"sub-{sub:03d}"

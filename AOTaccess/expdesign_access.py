@@ -7,6 +7,17 @@ import yaml
 
 class ExpDesignAccess:
     def __init__(self):
+        """
+        Initialize the ExpDesignAccess instance.
+
+        Loads the experiment design directory and run number from the settings.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        """
         basedir = Path(__file__).resolve().parent
         settings = yaml.safe_load(open(basedir / "settings.yml"))
         self.root_expdesign_dir = Path(settings["paths"]["AOTdesignsettings"])
@@ -14,7 +25,15 @@ class ExpDesignAccess:
 
     def read_expdesign_file(self, sub: int, ses: int, run: int):
         """
-        Read expdesign file for a specific subject, session and run
+        Read the experiment design file for a specific subject, session, and run.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+            run (int): Run number.
+
+        Returns:
+            dict: The parsed experiment design settings.
         """
         expdesign_file = (
             self.root_expdesign_dir
@@ -27,7 +46,14 @@ class ExpDesignAccess:
 
     def read_session_expdesign(self, sub: int, ses: int):
         """
-        Read expdesign file for a specific subject and session
+        Read the experiment design for all runs in a specific session for a subject.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+
+        Returns:
+            list: List of movie file settings for each run in the session.
         """
         run_number = self.run_number
         session_expdesign = [
@@ -41,7 +67,14 @@ class ExpDesignAccess:
 
     def append_all_trails_without_blanks(self, sub: int, ses: int):
         """
-        Append all trails without blanks from all runs of a session
+        Append and return all trials without blanks for a specific subject and session.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+
+        Returns:
+            list: A list of trials (movie files) where the entry is not "blank".
         """
         session_trails_without_blanks = []
         for run in range(1, self.run_number + 1):
@@ -56,7 +89,16 @@ class ExpDesignAccess:
         return session_trails_without_blanks
 
     def get_session_video_indexes(self, sub: int, ses: int):
-        "return video indexes number string for a session"
+        """
+        Get the list of video indexes for all trials in a session.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+
+        Returns:
+            list of str: Video indexes extracted from the movie file names.
+        """
         sessions_movies = self.append_all_trails_without_blanks(sub, ses)
         video_indexes = [movie_name.split("_")[0] for movie_name in sessions_movies]
         print(
@@ -65,7 +107,16 @@ class ExpDesignAccess:
         return video_indexes
 
     def get_session_uniqe_video_indexes(self, sub: int, ses: int):
-        "return unique video indexes number string for a session"
+        """
+        Get the unique video indexes for a session.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+
+        Returns:
+            list of str: A list of unique video indexes.
+        """
         sessions_movies = self.append_all_trails_without_blanks(sub, ses)
         video_indexes = [movie_name.split("_")[0] for movie_name in sessions_movies]
         unique_video_indexes = list(set(video_indexes))
@@ -75,5 +126,15 @@ class ExpDesignAccess:
         return unique_video_indexes
 
     def get_session_id_from_video_id(sub: int, video_id: int):
-        "return session id from video id"
+        """
+        (Pending Implementation) Get the session id from a given video id.
+
+        Parameters:
+            sub (int): Subject number.
+            video_id (int): Video id.
+
+        Returns:
+            None: Function pending implementation.
+        """
+        # Implementation pending...
         pass
