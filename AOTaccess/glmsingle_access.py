@@ -19,7 +19,9 @@ class GLMSingleAccess:
         """
         basedir = Path(__file__).resolve().parent
         settings = yaml.safe_load(open(basedir / "settings.yml"))
-        self.glmsingle_main_dir = Path(settings["paths"]["glmsingle"]) / "mainexp"
+        self.glmsingle_main_dir = (
+            Path(settings["paths"]["glmsingle"]) / "mainexp_newpreproc"
+        )
 
         self.video_betas_dir = Path(settings["paths"]["glmsingle"]) / "video_betas"
         self.stctype = stctype
@@ -37,7 +39,11 @@ class GLMSingleAccess:
         return self.glmsingle_main_dir
 
     def get_nii_dir_path(
-        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+        self,
+        sub: int,
+        ses: int,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution:str ="1.7mm",
     ):
         """
         Get the nii directory path for a given subject and session.
@@ -52,13 +58,17 @@ class GLMSingleAccess:
         """
         glm_type_dir = (
             self.glmsingle_main_dir
-            / f"sub-{sub:03d}_ses-{ses:02d}_T1W_{self.stctype}"
+            / f"sub-{sub:03d}_ses-{ses:02d}_T1W_{self.stctype}_{resolution}"
             / glmtype
         )
         return glm_type_dir
 
     def read_shape(
-        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+        self,
+        sub: int,
+        ses: int,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution:str ="1.7mm",
     ):
         """
         Get the shape of the betas data.
@@ -71,11 +81,15 @@ class GLMSingleAccess:
         Returns:
             tuple: The shape of the betas data.
         """
-        R2 = self.read_R2(sub, ses, glmtype)
+        R2 = self.read_R2(sub, ses, glmtype, resolution)
         return R2.shape
 
     def read_betas(  # by session
-        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+        self,
+        sub: int,
+        ses: int,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution:str ="1.7mm",
     ):
         """
         Load and return the betas data for a given subject and session.
@@ -88,36 +102,48 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray: Array containing the loaded betas data.
         """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
         betas_file = nii_dir / "betasmd.nii"
         betas = nib.load(betas_file).get_fdata()
         print(f"Loaded betas from {betas_file}")
         print(f"Shape of betas: {betas.shape}")
         return betas
 
-    def read_affine(
-        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
-    ):
-        """
-        Load and return the affine matrix for a given subject and session.
+    # def read_affine(
+    #     self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+    # ):
+    #     """
+    #     Load and return the affine matrix for a given subject and session.
 
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type.
+    #     Parameters:
+    #         sub (int): Subject number.
+    #         ses (int): Session number.
+    #         glmtype (str): GLM type.
 
-        Returns:
-            numpy.ndarray: The loaded affine matrix.
-        """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
-        betas_file = nii_dir / "betasmd.nii"
-        betas = nib.load(betas_file)
-        affine = betas.affine
-        print(f"Loaded affine from {betas_file}")
-        return affine
+    #     Returns:
+    #         numpy.ndarray: The loaded affine matrix.
+    #     """
+    #     nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
+    #     betas_file = nii_dir / "betasmd.nii"
+    #     betas = nib.load(betas_file)
+    #     affine = betas.affine
+    #     print(f"Loaded affine from {betas_file}")
+    #     return affine
+
+    def read_affine(self,sub:int): #for new data each sunject shouold have a single affine matrix for all sessions
+        affine_source_path = "/tank/shared/2024/visual/AOT/derivatives/anat-3T"
+        affine_matrix_path = (
+            affine_source_path
+            + f"/sub-{sub:03d}/
+            fiducial/epi_1.7mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM.nii.gz"
+        )
+
+        print("affine matrix source path:", affine_matrix_path)
+        affine_matrix = nib.load(affine_matrix_path).affine
+        return affine_matrix
 
     def read_meanvol(
-        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
+        self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR", resolution:str= "1.7mm"
     ):
         """
         Load and return the mean volume data for a given subject and session.
@@ -130,14 +156,14 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray: Array containing the loaded mean volume data.
         """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
         meanvol_file = nii_dir / "meanvol.nii"
         meanvol = nib.load(meanvol_file).get_fdata()
         print(f"Loaded meanvol from {meanvol_file}")
         print(f"Shape of meanvol: {meanvol.shape}")
         return meanvol
 
-    def read_R2(self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"):
+    def read_R2(self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR", resolution:str ="1.7mm"):
         """
         Load and return the R2 data for a given subject and session.
 
@@ -149,7 +175,7 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray: Array containing the loaded R2 data.
         """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
         R2_file = nii_dir / "R2.nii"
         R2 = nib.load(R2_file).get_fdata()
         print(f"Loaded R2 from {R2_file}")
@@ -161,6 +187,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution:str ="1.7mm",
         threshold: float = 0.2,
     ):
         """
@@ -175,7 +202,7 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray (bool): Boolean array mask for the R2 data.
         """
-        R2 = self.read_R2(sub, ses, glmtype)
+        R2 = self.read_R2(sub, ses, glmtype, resolution)
         R2_mask = R2 > threshold
         R2_mask = R2_mask.astype(bool)
         print(f"Shape of R2 mask: {R2_mask.shape}")
@@ -187,7 +214,7 @@ class GLMSingleAccess:
         video_num: int,
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        # space: str =
+        resolution:str ="1.7mm",
     ):
         """
         Load and return the betas data for a specific video.
