@@ -18,13 +18,13 @@ class AOTAccess:
         self.expdesign_access = ExpDesignAccess()
         self.stimuli_info_access = StimuliInfoAccess()
 
-    def get_affine_header(sub: int):
+    def read_affine_header(sub: int):
         pass
 
-    def get_meanvol_from_session(sub: int, ses: int, resolution: str = "1.7mm"):
+    def read_meanvol_from_session(sub: int, ses: int, resolution: str = "1.7mm"):
         pass
 
-    def get_betas_from_session(
+    def read_betas_from_session(
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
@@ -32,7 +32,7 @@ class AOTAccess:
     ):
         pass
 
-    def get_betas_from_video(
+    def read_betas_from_video(
         sub: int,
         video: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
@@ -40,7 +40,7 @@ class AOTAccess:
     ):
         pass
 
-    def get_R2_from_session(
+    def read_R2_from_session(
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
@@ -48,7 +48,7 @@ class AOTAccess:
     ):
         pass
 
-    def get_R2_mask_from_session(
+    def read_R2_mask_from_session(
         sub: int,
         ses: int,
         threshold: float = 0.2,
@@ -57,13 +57,13 @@ class AOTAccess:
     ):
         pass
 
-    def get_video_list_from_session(sub: int, ses: int):
+    def read_video_list_from_session(sub: int, ses: int):
         pass
 
-    def get_session_from_video(sub: int, video: int):
+    def read_session_from_video(sub: int, video: int):
         pass
 
-    def get_preproced_bold_from_session(
+    def read_preproced_bold_from_session(
         sub: int, ses: int, run: int, resolution: str = "1.7mm"
     ):
         pass
