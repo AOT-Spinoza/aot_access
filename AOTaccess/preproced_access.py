@@ -6,7 +6,7 @@ import nibabel as nib
 
 
 class PreprocedAccess:
-    def __init__(self):
+    def __init__(self):  #
         """
         Initialize the FmriprepAccess instance.
 
@@ -53,3 +53,6 @@ class PreprocedAccess:
         filepath = self.root_preproced_dir / f"sub-{sub}/ses-{ses}/func" / filename
 
         return nib.load(filepath)
+
+    def read_anat(self, sub: int, ses: int, type: str = "T1w"):
+        pass
