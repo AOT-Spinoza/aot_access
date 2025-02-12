@@ -255,17 +255,20 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray or None: Array containing the video betas data, or None if the file does not exist.
         """
-        # beta_file = (
-        #     self.video_betas_dir
-        #     / f"sub-{sub:03d}"
-        #     / f"{video_num:04d}_{direction}_betas.nii"
-        # )
+        beta_file = (
+            self.video_betas_dir
+            / f"sub-{sub:03d}"
+            / resolution
+            / glmtype
+            / direction
+            / f"{video_num:04d}_{direction}_betas.nii"
+        )
 
-        # if not os.path.exists(beta_file):
-        #     print(f"File {beta_file} does not exist")
-        #     return None
-        # else:
-        #     beta = nib.load(beta_file).get_fdata()
-        #     print(f"Loaded beta from {beta_file}")
-        #     print(f"Shape of beta: {beta.shape}")
-        #     return beta
+        if not os.path.exists(beta_file):
+            print(f"File {beta_file} does not exist")
+            return None
+        else:
+            beta = nib.load(beta_file).get_fdata()
+            print(f"Loaded beta from {beta_file}")
+            print(f"Shape of beta: {beta.shape}")
+            return beta
