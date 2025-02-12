@@ -144,6 +144,20 @@ class GLMSingleAccess:
         affine_matrix = nib.load(affine_matrix_path).affine
         return affine_matrix
 
+    def read_header(
+        self, sub: int
+    ):  # for new data each sunject shouold have a single affine matrix for all sessions
+        affine_source_path = "/tank/shared/2024/visual/AOT/derivatives/anat-3T"
+        affine_matrix_path = (
+            affine_source_path
+            + f"/sub-{sub:03d}/"
+            + f"fiducial/epi_1.7mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+        )
+
+        print("affine matrix source path:", affine_matrix_path)
+        header = nib.load(affine_matrix_path).header
+        return header
+
     def read_meanvol(
         self,
         sub: int,
