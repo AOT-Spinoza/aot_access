@@ -11,12 +11,22 @@ from AOTaccess.stimulus_info_access import StimuliInfoAccess
 
 
 class AOTAccess:
-    def __init__(self):
+    def __init__(self, root_path):
         self.basedir = Path(__file__).resolve().parent
         self.settings = yaml.safe_load(open(self.basedir / "settings.yml"))
         self.glmsingle_access = GLMSingleAccess()
         self.expdesign_access = ExpDesignAccess()
         self.stimuli_info_access = StimuliInfoAccess()
+
+        self.root_path = root_path
+        """
+        Root
+            Fw rv video betas folder
+            Glmginle output raw folder
+            Preproced folder
+            Bids folder
+            Raw data folder
+        """
 
     def read_affine_header(sub: int):
         pass
