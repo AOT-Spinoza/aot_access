@@ -111,7 +111,7 @@ class BidsAccess:
         with open(file_path, "r") as f:
             return json.load(f)
 
-    def read_output_csv(self, sub: int, ses: int, run: int = 1):
+    def read_output_csv(self, sub: int, ses: int, run: int):
         """
         Reads any .csv file in the behavioral directory, e.g., output files.
         """
