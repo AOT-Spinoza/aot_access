@@ -53,6 +53,3 @@ class PreprocedAccess:
         filepath = self.root_preproced_dir / f"sub-{sub}/ses-{ses}/func" / filename
 
         return nib.load(filepath)
-
-    def read_anat(self, sub: int, ses: int, type: str = "T1w"):
-        pass
