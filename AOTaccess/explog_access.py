@@ -6,6 +6,8 @@ import yaml
 import bids
 import csv
 
+from hedfpy.HDFEyeOperator import HDFEyeOperator
+
 
 basedir = Path(__file__).resolve().parent
 settings = yaml.safe_load(open(basedir / "settings.yml"))
@@ -76,8 +78,9 @@ class ExpLogAccess:
             func_dir
             / f"sub-{sub:03d}_ses-{ses:02d}_task-AOT_run-{run:02d}_eyetrack.edf"
         )
-        # Implementation pending...
-        pass
+
+        ho = HDFEyeOperator(filepath)
+        return ho
 
     def get_frames_pdf(self, sub: int, ses: int, run: int):
         """
