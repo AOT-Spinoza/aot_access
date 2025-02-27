@@ -7,7 +7,7 @@ import nibabel as nib
 
 
 class GLMSingleAccess:
-    def __init__(self, stctype="nordicstc"):
+    def __init__(self, stctype="nordicstc", root_dir: Path = None):
         """
         Initialize a GLMSingleAccess instance.
 
@@ -17,13 +17,17 @@ class GLMSingleAccess:
         Returns:
             None
         """
-        basedir = Path(__file__).resolve().parent
-        settings = yaml.safe_load(open(basedir / "settings.yml"))
-        self.glmsingle_main_dir = (
-            Path(settings["paths"]["glmsingle"]) / "mainexp_newpreproc"
-        )
+        if root_dir is not None:
+            self.glmsingle_main_dir = root_dir / "glmsingle"
+            self.video_betas_dir = root_dir / "video_betas"
+        else:
+            basedir = Path(__file__).resolve().parent
+            settings = yaml.safe_load(open(basedir / "settings.yml"))
+            self.glmsingle_main_dir = (
+                Path(settings["paths"]["glmsingle"]) / "mainexp_newpreproc"
+            )
 
-        self.video_betas_dir = Path(settings["paths"]["glmsingle"]) / "video_betas"
+            self.video_betas_dir = Path(settings["paths"]["glmsingle"]) / "video_betas"
         self.stctype = stctype
 
     def get_glm_dir_path(self):

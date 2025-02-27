@@ -9,7 +9,7 @@ import csv
 
 
 class StimuliInfoAccess:
-    def __init__(self):
+    def __init__(self, root_dir: Path = None):
         """
         Initialize the StimuliInfoAccess instance.
 
@@ -21,10 +21,14 @@ class StimuliInfoAccess:
         Returns:
             None
         """
-        basedir = Path(__file__).resolve().parent
-        settings = yaml.safe_load(open(basedir / "settings.yml"))
-        self.video_dir = Path(settings["paths"]["videos"])
-        self.video_annotation_dir = Path(settings["paths"]["video_annotations"])
+        if root_dir is not None:
+            self.video_dir = root_dir / "videos"
+            self.video_annotation_dir = root_dir / "video_annotations"
+        else:
+            basedir = Path(__file__).resolve().parent
+            settings = yaml.safe_load(open(basedir / "settings.yml"))
+            self.video_dir = Path(settings["paths"]["videos"])
+            self.video_annotation_dir = Path(settings["paths"]["video_annotations"])
 
     def get_video_path(self, video_id: int, direction: str = "fw"):
         """

@@ -9,8 +9,11 @@ import json
 
 
 class BidsAccess:
-    def __init__(self, bids_dir: Path):
-        self.bids_dir = bids_dir
+    def __init__(self, bids_dir: Path, root_dir: Path = None):
+        if root_dir is not None:
+            self.bids_dir = root_dir / "bids"
+        else:
+            self.bids_dir = bids_dir
 
     def get_func_dir(self, sub: int, ses: int):
         return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses:02d}" / "func"

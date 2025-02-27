@@ -6,7 +6,7 @@ import nibabel as nib
 
 
 class PreprocedAccess:
-    def __init__(self):  #
+    def __init__(self, root_dir: Path = None):
         """
         Initialize the FmriprepAccess instance.
 
@@ -18,9 +18,12 @@ class PreprocedAccess:
         Returns:
             None
         """
-        basedir = Path(__file__).resolve().parent
-        settings = yaml.safe_load(open(basedir / "settings.yml"))
-        self.root_preproced_dir = Path(settings["paths"]["preproced"])
+        if root_dir is not None:
+            self.root_preproced_dir = root_dir / "aot_prep"
+        else:
+            basedir = Path(__file__).resolve().parent
+            settings = yaml.safe_load(open(basedir / "settings.yml"))
+            self.root_preproced_dir = Path(settings["paths"]["preproced"])
 
     def read_func(
         self,

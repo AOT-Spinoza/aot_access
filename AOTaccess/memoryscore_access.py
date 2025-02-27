@@ -12,7 +12,7 @@ settings = yaml.safe_load(open(basedir / "settings.yml"))
 
 
 class MemoryScoreAccess:
-    def __init__(self):
+    def __init__(self, root_dir: Path = None):
         """
         Initialize the MemoryScoreAccess instance.
 
@@ -24,8 +24,10 @@ class MemoryScoreAccess:
         Returns:
             None
         """
-        self.bids_dir = Path(settings["paths"]["bids"])
-        pass
+        if root_dir is not None:
+            self.bids_dir = root_dir / "bids"
+        else:
+            self.bids_dir = Path(settings["paths"]["bids"])
 
     def get_memory_dir(self, sub: int, ses: int):
         """

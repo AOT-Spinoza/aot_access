@@ -6,7 +6,7 @@ import yaml
 
 
 class ExpDesignAccess:
-    def __init__(self):
+    def __init__(self, root_dir: Path = None):
         """
         Initialize the ExpDesignAccess instance.
 
@@ -18,10 +18,13 @@ class ExpDesignAccess:
         Returns:
             None
         """
-        basedir = Path(__file__).resolve().parent
-        settings = yaml.safe_load(open(basedir / "settings.yml"))
-        self.root_expdesign_dir = Path(settings["paths"]["AOTdesignsettings"])
-        self.run_number = settings["parameters"]["run_number"]
+        if root_dir is not None:
+            self.root_expdesign_dir = root_dir / "expdesign"
+        else:
+            basedir = Path(__file__).resolve().parent
+            settings = yaml.safe_load(open(basedir / "settings.yml"))
+            self.root_expdesign_dir = Path(settings["paths"]["AOTdesignsettings"])
+            self.run_number = settings["parameters"]["run_number"]
 
     def read_expdesign_file(self, sub: int, ses: int, run: int):
         """

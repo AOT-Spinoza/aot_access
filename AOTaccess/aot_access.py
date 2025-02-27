@@ -8,24 +8,36 @@ import nibabel as nib
 from AOTaccess.glmsingle_access import GLMSingleAccess
 from AOTaccess.expdesign_access import ExpDesignAccess
 from AOTaccess.stimulus_info_access import StimuliInfoAccess
+from AOTaccess.bids_access import BidsAccess
+from AOTaccess.memoryscore_access import MemoryScoreAccess
+from AOTaccess.preproced_access import PreprocedAccess
 
 
 class AOTAccess:
     def __init__(self, root_path):
         self.basedir = Path(__file__).resolve().parent
         self.settings = yaml.safe_load(open(self.basedir / "settings.yml"))
-        self.glmsingle_access = GLMSingleAccess()
-        self.expdesign_access = ExpDesignAccess()
-        self.stimuli_info_access = StimuliInfoAccess()
+        self.glmsingle_access = GLMSingleAccess(root_dir=root_path)
+        self.expdesign_access = ExpDesignAccess(root_dir=root_path)
+        self.stimuli_info_access = StimuliInfoAccess(root_dir=root_path)
+        self.bids_access = BidsAccess(root_dir=root_path)
+        self.memoryscore_access = MemoryScoreAccess(root_dir=root_path)
+        self.preproced_access = PreprocedAccess(root_dir=root_path)
 
         self.root_path = root_path
         """
-        Root
+        data dir structure:
+
+        Root path
             Fw rv video betas folder
             Glmginle output raw folder
             Preproced folder
             Bids folder
+            expdesign folder
             Raw data folder
+            video folder
+            video annotations folder
+
         """
 
     def read_affine_header(sub: int):
