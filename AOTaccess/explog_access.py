@@ -61,7 +61,7 @@ class ExpLogAccess:
         with open(filepath, "r") as f:
             return list(csv.DictReader(f, delimiter="\t"))
 
-    def read_eyetrack_edf(self, sub: int, ses: int, run: int):
+    def get_eyetrack_edf(self, sub: int, ses: int, run: int):
         """
         Load and return the eyetracking EDF file for a specific subject, session, and run.
 
@@ -79,8 +79,9 @@ class ExpLogAccess:
             / f"sub-{sub:03d}_ses-{ses:02d}_task-AOT_run-{run:02d}_eyetrack.edf"
         )
 
-        ho = HDFEyeOperator(filepath)
-        return ho
+        # ho = HDFEyeOperator()
+        # ho.add_edf_file(filepath) #########################################################################################################################################################################
+        return filepath
 
     def get_frames_pdf(self, sub: int, ses: int, run: int):
         """
