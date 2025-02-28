@@ -40,52 +40,106 @@ class AOTAccess:
 
         """
 
-    def read_affine_header(sub: int):
-        pass
+    def read_affine_header(self, sub: int):
+        """
+        Read affine matrix and header for a subject.
+        """
+        affine = self.glmsingle_access.read_affine(sub)
+        header = self.glmsingle_access.read_header(sub)
+        return affine, header
 
-    def read_meanvol_from_session(sub: int, ses: int, resolution: str = "1.7mm"):
-        pass
+    def read_meanvol_from_session(self, sub: int, ses: int, resolution: str = "1.7mm"):
+        """
+        Read mean volume data for a session.
+        """
+        return self.glmsingle_access.read_meanvol(
+            sub=sub, ses=ses, resolution=resolution
+        )
 
     def read_betas_from_session(
+        self,
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "1.7mm",
     ):
-        pass
+        """
+        Read beta values for a session.
+        """
+        return self.glmsingle_access.read_betas(
+            sub=sub, ses=ses, glmtype=glmtype, resolution=resolution
+        )
 
     def read_betas_from_video(
+        self,
         sub: int,
         video: int,
+        direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "1.7mm",
     ):
-        pass
+        """
+        Read beta values for a specific video.
+        """
+        return self.glmsingle_access.read_video_betas(
+            sub=sub,
+            video_num=video,
+            direction=direction,
+            glmtype=glmtype,
+            resolution=resolution,
+        )
 
     def read_R2_from_session(
+        self,
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "1.7mm",
     ):
-        pass
+        """
+        Read R2 values for a session.
+        """
+        return self.glmsingle_access.read_R2(
+            sub=sub, ses=ses, glmtype=glmtype, resolution=resolution
+        )
 
     def read_R2_mask_from_session(
+        self,
         sub: int,
         ses: int,
         threshold: float = 0.2,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "1.7mm",
     ):
-        pass
+        """
+        Read R2 mask for a session with given threshold.
+        """
+        return self.glmsingle_access.read_R2_mask(
+            sub=sub,
+            ses=ses,
+            glmtype=glmtype,
+            resolution=resolution,
+            threshold=threshold,
+        )
 
-    def read_video_list_from_session(sub: int, ses: int):
-        pass
+    def read_video_list_from_session(self, sub: int, ses: int):
+        """
+        Get list of videos for a session.
+        """
+        return self.expdesign_access.get_session_uniqe_video_indexes(sub, ses)
 
-    def read_session_from_video(sub: int, video: int):
-        pass
+    def read_session_from_video(self, sub: int, video: int):
+        """
+        Get session number for a given video.
+        """
+        return self.expdesign_access.get_session_id_from_video_id(sub, video)
 
     def read_preproced_bold_from_session(
-        sub: int, ses: int, run: int, resolution: str = "1.7mm"
+        self, sub: int, ses: int, run: int, resolution: str = "1.7mm"
     ):
-        pass
+        """
+        Read preprocessed BOLD data for a session.
+        """
+        return self.preproced_access.read_func(
+            sub=sub, ses=ses, run=run, resolution=resolution
+        )
