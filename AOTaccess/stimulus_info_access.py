@@ -146,7 +146,9 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
 
-    def _temp_read_motion_energy_features(self, video_id: int, direction: str = "fw"):
+    def _temp_read_motion_energy_features(
+        self, video_id: int, direction: str = "fw", highest_freq=16
+    ):
         """
         Temporarily load motion energy features for a video.
 
@@ -157,11 +159,18 @@ class StimuliInfoAccess:
         Returns:
             numpy.ndarray: Loaded motion energy features.
         """
-        temp_root_dir = Path(
-            "/tank/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
-        )
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
-        return np.load(temp_file)
+        if highest_freq == 16:
+            temp_root_dir = Path(
+                "/tank/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
+            )
+            temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
+            return np.load(temp_file)
+        elif highest_freq == 32:
+            temp_root_dir = Path(
+                "/tank/shared/2024/visual/AOT/temp/motion_freq_test[0,2,4,8,16,32]"
+            )
+            temp_file = temp_root_dir / f"{video_id:04d}_{direction}.mp4.npy"
+            return np.load(temp_file)
 
     def read_semantic_segmentation(self, video_id: int, direction: str = "fw"):
         """
