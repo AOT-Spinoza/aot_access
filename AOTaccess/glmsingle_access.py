@@ -94,6 +94,7 @@ class GLMSingleAccess:
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "1.7mm",
+        zscore: bool = False,
     ):
         """
         Load and return the betas data for a given subject and session.
@@ -107,7 +108,10 @@ class GLMSingleAccess:
             numpy.ndarray: Array containing the loaded betas data.
         """
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
-        betas_file = nii_dir / "betasmd.nii.gz"
+        if zscore:
+            betas_file = nii_dir / "betasmd_zscore.nii.gz"
+        else:
+            betas_file = nii_dir / "betasmd.nii.gz"
         betas = nib.load(betas_file).get_fdata()
         print(f"Loaded betas from {betas_file}")
         print(f"Shape of betas: {betas.shape}")
@@ -245,6 +249,7 @@ class GLMSingleAccess:
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "1.7mm",
+        zscore: bool = False,
     ):
         """
         Load and return the betas data for a specific video.
@@ -259,14 +264,24 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray or None: Array containing the video betas data, or None if the file does not exist.
         """
-        beta_file = (
-            self.video_betas_dir
-            / f"sub-{sub:03d}"
-            / resolution
-            / glmtype
-            / direction
-            / f"{video_num:04d}_{direction}_betas.nii"
-        )
+        if zscore:
+            beta_file = (
+                self.video_betas_dir
+                / f"sub-{sub:03d}"
+                / resolution
+                / glmtype
+                / direction
+                / f"{video_num:04d}_{direction}_betas_zscore.nii.gz"
+            )
+        else:
+            beta_file = (
+                self.video_betas_dir
+                / f"sub-{sub:03d}"
+                / resolution
+                / glmtype
+                / direction
+                / f"{video_num:04d}_{direction}_betas.nii.gz"
+            )
 
         if not os.path.exists(beta_file):
             print(f"File {beta_file} does not exist")
