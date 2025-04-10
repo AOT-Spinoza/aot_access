@@ -113,8 +113,8 @@ class GLMSingleAccess:
         else:
             betas_file = nii_dir / "betasmd.nii.gz"
         betas = nib.load(betas_file).get_fdata()
-        print(f"Loaded betas from {betas_file}")
-        print(f"Shape of betas: {betas.shape}")
+        # print(f"Loaded betas from {betas_file}")
+        # print(f"Shape of betas: {betas.shape}")
         return betas
 
     # def read_affine(
@@ -148,7 +148,7 @@ class GLMSingleAccess:
             + f"fiducial/epi_1.7mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
-        print("affine matrix source path:", affine_matrix_path)
+        # print("affine matrix source path:", affine_matrix_path)
         affine_matrix = nib.load(affine_matrix_path).affine
         return affine_matrix
 
@@ -162,7 +162,7 @@ class GLMSingleAccess:
             + f"fiducial/epi_1.7mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
-        print("affine matrix source path:", affine_matrix_path)
+        # print("affine matrix source path:", affine_matrix_path)
         header = nib.load(affine_matrix_path).header
         return header
 
@@ -187,8 +187,8 @@ class GLMSingleAccess:
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
         meanvol_file = nii_dir / "meanvol.nii.gz"
         meanvol = nib.load(meanvol_file).get_fdata()
-        print(f"Loaded meanvol from {meanvol_file}")
-        print(f"Shape of meanvol: {meanvol.shape}")
+        # print(f"Loaded meanvol from {meanvol_file}")
+        # print(f"Shape of meanvol: {meanvol.shape}")
         return meanvol
 
     def read_R2(
@@ -212,8 +212,8 @@ class GLMSingleAccess:
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
         R2_file = nii_dir / "R2.nii.gz"
         R2 = nib.load(R2_file).get_fdata()
-        print(f"Loaded R2 from {R2_file}")
-        print(f"Shape of R2: {R2.shape}")
+        # print(f"Loaded R2 from {R2_file}")
+        # print(f"Shape of R2: {R2.shape}")
         return R2
 
     def read_R2_mask(
@@ -239,7 +239,7 @@ class GLMSingleAccess:
         R2 = self.read_R2(sub, ses, glmtype, resolution)
         R2_mask = R2 > threshold
         R2_mask = R2_mask.astype(bool)
-        print(f"Shape of R2 mask: {R2_mask.shape}")
+        # print(f"Shape of R2 mask: {R2_mask.shape}")
         return R2_mask
 
     def read_video_betas(
@@ -284,10 +284,10 @@ class GLMSingleAccess:
             )
 
         if not os.path.exists(beta_file):
-            print(f"File {beta_file} does not exist")
+            # print(f"File {beta_file} does not exist")
             return None
         else:
             beta = nib.load(beta_file).get_fdata()
-            print(f"Loaded beta from {beta_file}")
-            print(f"Shape of beta: {beta.shape}")
+            # print(f"Loaded beta from {beta_file}")
+            # print(f"Shape of beta: {beta.shape}")
             return beta
