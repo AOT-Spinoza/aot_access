@@ -2,7 +2,7 @@ paths:
   glmsingle: "/tank/shared/2024/visual/AOT/derivatives/glmsingle"
   #fmriprep: "/tank/shared/2024/visual/AOT/derivatives/fmripreps/aotfull_preprocs/fullpreproc_forcesyn_endfix" 
   preproced: "/tank/shared/2024/visual/AOT/derivatives/aot_prep"
-  bids: "/tank/shared/2024/visual/AOT/bids/aotfull_final"
+  bids: "/tank/shared/2024/visual/AOT/bids/aot"
   videos: "/tank/shared/2024/visual/AOT/derivatives/stimuli/rescaled_final" 
   video_annotations: "/tank/shared/2024/visual/AOT/derivatives/stimuli/annotations"
   AOTdesignsettings: "/tank/zhangs/AOT_code_repos/arrow_of_time_experiment/aot/data/experiment/settings/main"
