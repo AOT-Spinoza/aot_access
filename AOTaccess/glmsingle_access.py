@@ -19,15 +19,15 @@ class GLMSingleAccess:
         """
         if root_dir is not None:
             self.glmsingle_main_dir = root_dir / "glmsingle"
-            self.video_betas_dir = root_dir / "video_betas"
+            self.video_betas_dir = root_dir / "per_video"
         else:
             basedir = Path(__file__).resolve().parent
             settings = yaml.safe_load(open(basedir / "settings.yml"))
             self.glmsingle_main_dir = (
-                Path(settings["paths"]["glmsingle"]) / "mainexp_newpreproc"
+                Path(settings["paths"]["glmsingle"]) / "per_session"
             )
 
-            self.video_betas_dir = Path(settings["paths"]["glmsingle"]) / "video_betas"
+            self.video_betas_dir = Path(settings["paths"]["glmsingle"]) / "per_video"
         self.stctype = stctype
 
     def get_glm_dir_path(self):
