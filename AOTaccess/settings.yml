@@ -9,6 +9,7 @@ paths:
   # sbert_embeddings: "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
   # llama_descriptions: "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean"
   # motion_energy: "/tank/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
+  prf: "/tank/shared/2024/visual/AOT/derivatives/prf"
 
 parameters:
   run_number: 10
