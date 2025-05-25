@@ -111,32 +111,11 @@ class GLMSingleAccess:
         if zscore:
             betas_file = nii_dir / "betasmd_zscore.nii.gz"
         else:
-            betas_file = nii_dir / "betasmd.nii.gz"
+            betas_file = nii_dir / "betasmd.nii.gz" # betasmd is the original betas file
         betas = nib.load(betas_file).get_fdata()
         # print(f"Loaded betas from {betas_file}")
         # print(f"Shape of betas: {betas.shape}")
         return betas
-
-    # def read_affine(
-    #     self, sub: int, ses: int, glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR"
-    # ):
-    #     """
-    #     Load and return the affine matrix for a given subject and session.
-
-    #     Parameters:
-    #         sub (int): Subject number.
-    #         ses (int): Session number.
-    #         glmtype (str): GLM type.
-
-    #     Returns:
-    #         numpy.ndarray: The loaded affine matrix.
-    #     """
-    #     nii_dir = self.get_nii_dir_path(sub, ses, glmtype)
-    #     betas_file = nii_dir / "betasmd.nii"
-    #     betas = nib.load(betas_file)
-    #     affine = betas.affine
-    #     print(f"Loaded affine from {betas_file}")
-    #     return affine
 
     def read_affine(
         self, sub: int
