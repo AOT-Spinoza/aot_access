@@ -673,7 +673,7 @@ class PrfAccess:
         noiseceiling_data = nib.load(noiseceiling_path).get_fdata()
         return noiseceiling_data
     
-    def get_self_method_list(self):
+    def get_method_list(self):
         """
         Get a list of available methods for accessing pRF data.
 
