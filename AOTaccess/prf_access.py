@@ -153,7 +153,7 @@ class PrfAccess:
         """
         return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_y.nii.gz"
     
-    def get_prf_fits_amplitude_path(
+    def get_prf_fits_prf_amplitude_path(
         self,
         sub:int,
         model:str="gauss",
@@ -168,7 +168,7 @@ class PrfAccess:
         Returns:
             pathlib.Path: The path to prf_main_dir.
         """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_ampl.nii.gz"
+        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_prf_ampl.nii.gz"
 
     def get_prf_fits_hrf_deriv_path(
         self,
@@ -444,7 +444,7 @@ class PrfAccess:
         y_position_data = nib.load(y_position_path).get_fdata()
         return y_position_data
     
-    def read_amplitude(
+    def read_prf_amplitude(
         self,
         sub:int,
         model:str="gauss",
@@ -463,7 +463,7 @@ class PrfAccess:
         Returns:
             np.ndarray: The amplitude data.
         """
-        amplitude_path = self.get_prf_fits_amplitude_path(sub, model, resolution, runpart, rec)
+        amplitude_path = self.get_prf_fits_prf_amplitude_path(sub, model, resolution, runpart, rec)
         amplitude_data = nib.load(amplitude_path).get_fdata()
         return amplitude_data
     
@@ -673,6 +673,7 @@ class PrfAccess:
         noiseceiling_data = nib.load(noiseceiling_path).get_fdata()
         return noiseceiling_data
     
+    
     def get_method_list(self):
         """
         Get a list of available methods for accessing pRF data.
@@ -687,7 +688,7 @@ class PrfAccess:
             "read_polar_angle",
             "read_x_position",
             "read_y_position",
-            "read_amplitude",
+            "read_prf_amplitude",
             "read_hrf_deriv",
             "read_hrf_dsip",
             "read_BDratio",
