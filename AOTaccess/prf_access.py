@@ -313,6 +313,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the R2 data for a given subject and session.
@@ -327,6 +329,7 @@ class PrfAccess:
         """
         r2_path = self.get_prf_fits_r2_path(sub, model, resolution, runpart, rec)
         r2_data = nib.load(r2_path).get_fdata()
+        # Note: R2 data is not masked as it's used as the mask source
         return r2_data
     
     def read_eccentricity(
@@ -336,6 +339,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the eccentricity data for a given subject and session.
@@ -350,6 +355,9 @@ class PrfAccess:
         """
         ecc_path = self.get_prf_fits_eccentricity_path(sub, model, resolution, runpart, rec)
         ecc_data = nib.load(ecc_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            ecc_data[r2_data < mask_r2_threshold] = 0
         return ecc_data
     
     def read_prfsize(
@@ -359,6 +367,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the prfsize data for a given subject and session.
@@ -373,6 +383,9 @@ class PrfAccess:
         """
         prfsize_path = self.get_prf_fits_prfsize_path(sub, model, resolution, runpart, rec)
         prfsize_data = nib.load(prfsize_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            prfsize_data[r2_data < mask_r2_threshold] = 0
         return prfsize_data
     
     def read_polar_angle(
@@ -382,6 +395,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the polar angle data for a given subject and session.
@@ -396,6 +411,9 @@ class PrfAccess:
         """
         polar_angle_path = self.get_prf_fits_polar_angle_path(sub, model, resolution, runpart, rec)
         polar_angle_data = nib.load(polar_angle_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            polar_angle_data[r2_data < mask_r2_threshold] = 0
         return polar_angle_data
     
     def read_x_position(
@@ -405,6 +423,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the x position data for a given subject and session.
@@ -419,6 +439,9 @@ class PrfAccess:
         """
         x_position_path = self.get_prf_fits_x_position_path(sub, model, resolution, runpart, rec)
         x_position_data = nib.load(x_position_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            x_position_data[r2_data < mask_r2_threshold] = 0
         return x_position_data
     
     def read_y_position(
@@ -428,6 +451,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the y position data for a given subject and session.
@@ -442,6 +467,9 @@ class PrfAccess:
         """
         y_position_path = self.get_prf_fits_y_position_path(sub, model, resolution, runpart, rec)
         y_position_data = nib.load(y_position_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            y_position_data[r2_data < mask_r2_threshold] = 0
         return y_position_data
     
     def read_prf_amplitude(
@@ -451,6 +479,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the amplitude data for a given subject and session.
@@ -465,6 +495,9 @@ class PrfAccess:
         """
         amplitude_path = self.get_prf_fits_prf_amplitude_path(sub, model, resolution, runpart, rec)
         amplitude_data = nib.load(amplitude_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            amplitude_data[r2_data < mask_r2_threshold] = 0
         return amplitude_data
     
     def read_hrf_deriv(
@@ -474,6 +507,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the hrf deriv data for a given subject and session.
@@ -488,6 +523,9 @@ class PrfAccess:
         """
         hrf_deriv_path = self.get_prf_fits_hrf_deriv_path(sub, model, resolution, runpart, rec)
         hrf_deriv_data = nib.load(hrf_deriv_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            hrf_deriv_data[r2_data < mask_r2_threshold] = 0
         return hrf_deriv_data
     
     def read_hrf_dsip(
@@ -497,6 +535,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the hrf dsip data for a given subject and session.
@@ -511,6 +551,9 @@ class PrfAccess:
         """
         hrf_dsip_path = self.get_prf_fits_hrf_dsip_path(sub, model, resolution, runpart, rec)
         hrf_dsip_data = nib.load(hrf_dsip_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            hrf_dsip_data[r2_data < mask_r2_threshold] = 0
         return hrf_dsip_data
     
     def read_BDratio(
@@ -520,6 +563,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the BDratio data for a given subject and session.
@@ -534,6 +579,9 @@ class PrfAccess:
         """
         bd_ratio_path = self.get_prf_fits_BDratio_path(sub, model, resolution, runpart, rec)
         bd_ratio_data = nib.load(bd_ratio_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            bd_ratio_data[r2_data < mask_r2_threshold] = 0
         return bd_ratio_data
     
     def read_bold_baseline(
@@ -543,6 +591,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the bold baseline data for a given subject and session.
@@ -557,6 +607,9 @@ class PrfAccess:
         """
         bold_baseline_path = self.get_prf_fits_bold_baseline_path(sub, model, resolution, runpart, rec)
         bold_baseline_data = nib.load(bold_baseline_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            bold_baseline_data[r2_data < mask_r2_threshold] = 0
         return bold_baseline_data
     
     def read_surround_amplitude(
@@ -566,6 +619,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the surround amplitude data for a given subject and session.
@@ -580,6 +635,9 @@ class PrfAccess:
         """
         surround_amplitude_path = self.get_prf_fits_surround_amplitude_path(sub, model, resolution, runpart, rec)
         surround_amplitude_data = nib.load(surround_amplitude_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            surround_amplitude_data[r2_data < mask_r2_threshold] = 0
         return surround_amplitude_data
     
     def read_surround_baseline(
@@ -589,6 +647,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the surround baseline data for a given subject and session.
@@ -603,6 +663,9 @@ class PrfAccess:
         """
         surround_baseline_path = self.get_prf_fits_surround_baseline_path(sub, model, resolution, runpart, rec)
         surround_baseline_data = nib.load(surround_baseline_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            surround_baseline_data[r2_data < mask_r2_threshold] = 0
         return surround_baseline_data
     
     def read_surround_size(
@@ -612,6 +675,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the surround size data for a given subject and session.
@@ -626,6 +691,9 @@ class PrfAccess:
         """
         surround_size_path = self.get_prf_fits_surround_size_path(sub, model, resolution, runpart, rec)
         surround_size_data = nib.load(surround_size_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            surround_size_data[r2_data < mask_r2_threshold] = 0
         return surround_size_data
     
     def read_neuro_baseline(
@@ -635,6 +703,8 @@ class PrfAccess:
         resolution:str="1.7mm",
         runpart:str="firsthalf",
         rec:str="nordicstc",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the neuro baseline data for a given subject and session.
@@ -649,6 +719,9 @@ class PrfAccess:
         """
         neuro_baseline_path = self.get_prf_fits_neuro_baseline_path(sub, model, resolution, runpart, rec)
         neuro_baseline_data = nib.load(neuro_baseline_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
+            neuro_baseline_data[r2_data < mask_r2_threshold] = 0
         return neuro_baseline_data
     
     def read_noiseceiling(
@@ -657,6 +730,8 @@ class PrfAccess:
         ses:int,
         glmtype:str="TYPED_FITHRF_GLMDENOISE_RR",
         resolution:str="1.7mm",
+        mask:bool=False,
+        mask_r2_threshold:float=0.1,
     ):
         """
         Read the noise ceiling data for a given subject and session.
@@ -671,6 +746,9 @@ class PrfAccess:
         """
         noiseceiling_path = self.get_prf_noiseceiling_dir_path(sub)
         noiseceiling_data = nib.load(noiseceiling_path).get_fdata()
+        if mask:
+            r2_data = self.read_R2(sub, "gauss", resolution, "firsthalf", "nordicstc")
+            noiseceiling_data[r2_data < mask_r2_threshold] = 0
         return noiseceiling_data
     
     
