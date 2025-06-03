@@ -229,6 +229,7 @@ class GLMSingleAccess:
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "1.7mm",
         zscore: bool = False,
+        average: bool = False,
     ):
         """
         Load and return the betas data for a specific video.
@@ -269,4 +270,6 @@ class GLMSingleAccess:
             beta = nib.load(beta_file).get_fdata()
             # print(f"Loaded beta from {beta_file}")
             # print(f"Shape of beta: {beta.shape}")
+            if average:
+                beta = beta.mean(axis=0)
             return beta
