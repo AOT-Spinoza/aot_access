@@ -194,6 +194,31 @@ class GLMSingleAccess:
         # print(f"Loaded R2 from {R2_file}")
         # print(f"Shape of R2: {R2.shape}")
         return R2
+    
+    def read_noiseceiling(
+        self,
+        sub: int,
+        ses: int,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "1.7mm",
+    ):
+        """
+        Load and return the noise ceiling data for a given subject and session.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+            glmtype (str): GLM type.
+
+        Returns:
+            numpy.ndarray: Array containing the loaded noise ceiling data.
+        """
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
+        nc_file = nii_dir / "noiseceiling.nii.gz"
+        nc = nib.load(nc_file).get_fdata()
+        # print(f"Loaded noise ceiling from {nc_file}")
+        # print(f"Shape of noise ceiling: {nc.shape}")
+        return nc
 
     def read_R2_mask(
         self,
