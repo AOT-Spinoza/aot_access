@@ -111,7 +111,7 @@ class ExpDesignAccess:
 
     def get_session_uniqe_video_indexes(self, sub: int, ses: int):
         """
-        Get the unique video indexes for a session.
+        Get the unique video indexes for a session. (none repeat video indexes without direction)
 
         Parameters:
             sub (int): Subject number.
