@@ -87,6 +87,32 @@ class GLMSingleAccess:
         """
         R2 = self.read_R2(sub, ses, glmtype, resolution)
         return R2.shape
+    
+    def get_betas_path(
+        self,
+        sub: int,
+        ses: int,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "1.7mm",
+        zscore: bool = False,
+    ):
+        """
+        Get the path to the betas file for a given subject and session.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+            glmtype (str): GLM type.
+            resolution (str): Resolution, default is "1.7mm".
+
+        Returns:
+            pathlib.Path: Path to the betas file.
+        """
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
+        if zscore:
+            betas_file = nii_dir / "betasmd_zscore.nii.gz"
+        else:
+            betas_file = nii_dir / "betasmd.nii.gz"
 
     def read_betas(  # by session
         self,
@@ -107,15 +133,15 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray: Array containing the loaded betas data.
         """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
-        if zscore:
-            betas_file = nii_dir / "betasmd_zscore.nii.gz"
+        betas_file = self.get_betas_path(sub, ses, glmtype, resolution, zscore)
+        if not os.path.exists(betas_file):
+            # print(f"File {betas_file} does not exist")
+            return None
         else:
-            betas_file = nii_dir / "betasmd.nii.gz" # betasmd is the original betas file
-        betas = nib.load(betas_file).get_fdata()
-        # print(f"Loaded betas from {betas_file}")
-        # print(f"Shape of betas: {betas.shape}")
-        return betas
+            betas = nib.load(betas_file).get_fdata()
+            # print(f"Loaded betas from {betas_file}")
+            # print(f"Shape of betas: {betas.shape}")
+            return betas
 
     def read_affine(
         self, sub: int
@@ -145,6 +171,28 @@ class GLMSingleAccess:
         header = nib.load(affine_matrix_path).header
         return header
 
+    def get_meanvol_path(
+        self,
+        sub: int,
+        ses: int,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "1.7mm",
+    ):
+        """
+        Get the path to the mean volume file for a given subject and session.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+            glmtype (str): GLM type.
+
+        Returns:
+            pathlib.Path: Path to the mean volume file.
+        """
+        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
+        meanvol_file = nii_dir / "meanvol.nii.gz"
+        return meanvol_file
+
     def read_meanvol(
         self,
         sub: int,
@@ -163,12 +211,38 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray: Array containing the loaded mean volume data.
         """
+
+        meanvol_file = self.get_meanvol_path(sub, ses, glmtype, resolution)
+        if not os.path.exists(meanvol_file):
+            # print(f"File {meanvol_file} does not exist")
+            return None
+        else:
+            meanvol = nib.load(meanvol_file).get_fdata()
+            # print(f"Loaded meanvol from {meanvol_file}")
+            # print(f"Shape of meanvol: {meanvol.shape}")
+            return meanvol
+        
+    def get_R2_path(
+        self,
+        sub: int,
+        ses: int,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "1.7mm",
+    ):
+        """
+        Get the path to the R2 file for a given subject and session.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
+
+        Returns:
+            pathlib.Path: Path to the R2 file.
+        """
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
-        meanvol_file = nii_dir / "meanvol.nii.gz"
-        meanvol = nib.load(meanvol_file).get_fdata()
-        # print(f"Loaded meanvol from {meanvol_file}")
-        # print(f"Shape of meanvol: {meanvol.shape}")
-        return meanvol
+        R2_file = nii_dir / "R2.nii.gz"
+        return R2_file
 
     def read_R2(
         self,
@@ -188,12 +262,37 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray: Array containing the loaded R2 data.
         """
+        R2_file = self.get_R2_path(sub, ses, glmtype, resolution)
+        if not os.path.exists(R2_file):
+            # print(f"File {R2_file} does not exist")
+            return None
+        else:
+            R2 = nib.load(R2_file).get_fdata()
+            # print(f"Loaded R2 from {R2_file}")
+            # print(f"Shape of R2: {R2.shape}")
+            return R2
+        
+    def get_noiseceiling_path(
+        self,
+        sub: int,
+        ses: int,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "1.7mm",
+    ):
+        """
+        Get the path to the noise ceiling file for a given subject and session.
+
+        Parameters:
+            sub (int): Subject number.
+            ses (int): Session number.
+            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
+
+        Returns:
+            pathlib.Path: Path to the noise ceiling file.
+        """
         nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
-        R2_file = nii_dir / "R2.nii.gz"
-        R2 = nib.load(R2_file).get_fdata()
-        # print(f"Loaded R2 from {R2_file}")
-        # print(f"Shape of R2: {R2.shape}")
-        return R2
+        nc_file = nii_dir / "noiseceiling.nii.gz"
+        return nc_file
     
     def read_noiseceiling(
         self,
@@ -213,12 +312,15 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray: Array containing the loaded noise ceiling data.
         """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
-        nc_file = nii_dir / "noiseceiling.nii.gz"
-        nc = nib.load(nc_file).get_fdata()
-        # print(f"Loaded noise ceiling from {nc_file}")
-        # print(f"Shape of noise ceiling: {nc.shape}")
-        return nc
+        nc_file = self.get_noiseceiling_path(sub, ses, glmtype, resolution)
+        if not os.path.exists(nc_file):
+            # print(f"File {nc_file} does not exist")
+            return None
+        else:
+            nc = nib.load(nc_file).get_fdata()
+            # print(f"Loaded noise ceiling from {nc_file}")
+            # print(f"Shape of noise ceiling: {nc.shape}")
+            return nc
 
     def read_R2_mask(
         self,
@@ -245,6 +347,48 @@ class GLMSingleAccess:
         R2_mask = R2_mask.astype(bool)
         # print(f"Shape of R2 mask: {R2_mask.shape}")
         return R2_mask
+    
+    def get_video_betas_path(
+        self,
+        sub: int,
+        video_num: int,
+        direction: str = "fw",
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "1.7mm",
+        zscore: bool = False,
+    ):
+        """
+        Get the path to the betas file for a specific video.
+
+        Parameters:
+            sub (int): Subject number.
+            video_num (int): Video number.
+            direction (str): Video direction, default is "fw".
+            glmtype (str): GLM type.
+            resolution (str): Resolution, default is "1.7mm".
+
+        Returns:
+            pathlib.Path: Path to the betas file for the specified video.
+        """
+        if zscore:
+            beta_file = (
+                self.video_betas_dir
+                / f"sub-{sub:03d}"
+                / resolution
+                / glmtype
+                / direction
+                / f"{video_num:04d}_{direction}_betas_zscore.nii.gz"
+            )
+        else:
+            beta_file = (
+                self.video_betas_dir
+                / f"sub-{sub:03d}"
+                / resolution
+                / glmtype
+                / direction
+                / f"{video_num:04d}_{direction}_betas.nii.gz"
+            )
+        return beta_file
 
     def read_video_betas(
         self,
@@ -270,22 +414,12 @@ class GLMSingleAccess:
             numpy.ndarray or None: Array containing the video betas data, or None if the file does not exist.
         """
         if zscore:
-            beta_file = (
-                self.video_betas_dir
-                / f"sub-{sub:03d}"
-                / resolution
-                / glmtype
-                / direction
-                / f"{video_num:04d}_{direction}_betas_zscore.nii.gz"
+            beta_file = self.get_video_betas_path(
+                sub, video_num, direction, glmtype, resolution, zscore=True
             )
         else:
-            beta_file = (
-                self.video_betas_dir
-                / f"sub-{sub:03d}"
-                / resolution
-                / glmtype
-                / direction
-                / f"{video_num:04d}_{direction}_betas.nii.gz"
+            beta_file = self.get_video_betas_path(
+                sub, video_num, direction, glmtype, resolution, zscore=False
             )
 
         if not os.path.exists(beta_file):
