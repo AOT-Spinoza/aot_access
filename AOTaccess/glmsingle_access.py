@@ -88,7 +88,7 @@ class GLMSingleAccess:
         R2 = self.read_R2(sub, ses, glmtype, resolution)
         return R2.shape
     
-    def get_betas_path(
+    def get_session_betas_path(
         self,
         sub: int,
         ses: int,
@@ -113,6 +113,7 @@ class GLMSingleAccess:
             betas_file = nii_dir / "betasmd_zscore.nii.gz"
         else:
             betas_file = nii_dir / "betasmd.nii.gz"
+        return betas_file
 
     def read_betas(  # by session
         self,
@@ -133,7 +134,7 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray: Array containing the loaded betas data.
         """
-        betas_file = self.get_betas_path(sub, ses, glmtype, resolution, zscore)
+        betas_file = self.get_session_betas_path(sub, ses, glmtype, resolution, zscore)
         if not os.path.exists(betas_file):
             # print(f"File {betas_file} does not exist")
             return None
