@@ -68,7 +68,7 @@ class ExpDesignAccess:
         print(f"Loaded expdesign for session {ses} of subject {sub}")
         return sessions_movies
 
-    def append_all_trails_without_blanks(self, sub: int, ses: int):
+    def append_all_trials_without_blanks(self, sub: int, ses: int):
         """
         Append and return all trials without blanks for a specific subject and session.
 
