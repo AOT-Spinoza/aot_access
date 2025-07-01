@@ -1,0 +1,152 @@
+# User Configuration File
+# Records all users' access permissions and API key information
+
+users:
+  # Admin user
+  admin:
+    username: "admin"
+    access_level: 4
+    permissions:
+      - "read_all_data"
+      - "write_all_data"
+      - "manage_users"
+      - "system_config"
+    api_key: "admin_api_key_placeholder"
+    created_date: "2025-07-01"
+    last_access: null
+    status: "active"
+    description: "System administrator with all permissions"
+
+  # Researcher user example
+  researcher_1:
+    username: "researcher_001"
+    access_level: 3
+    permissions:
+      - "read_all_data"
+      - "write_analysis_results"
+      - "read_experiment_data"
+    api_key: "researcher_001_api_key_placeholder"
+    created_date: "2025-07-01"
+    last_access: null
+    status: "active"
+    description: "Researcher with data access and analysis permissions"
+
+  # Student user example
+  student_1:
+    username: "student_001"
+    access_level: 2
+    permissions:
+      - "read_public_data"
+      - "read_assigned_experiments"
+    api_key: "student_001_api_key_placeholder"
+    created_date: "2025-07-01"
+    last_access: null
+    status: "active"
+    description: "Student user with limited access permissions"
+
+  # Guest user example
+  guest_1:
+    username: "guest_001"
+    access_level: 1
+    permissions:
+      - "read_public_data"
+    api_key: "guest_001_api_key_placeholder"
+    created_date: "2025-07-01"
+    last_access: null
+    status: "active"
+    description: "Guest user with access to public data only"
+
+# Access level definitions
+access_levels:
+  4:
+    name: "admin"
+    description: "Administrator level with all system permissions"
+    default_permissions:
+      - "read_all_data"
+      - "write_all_data"
+      - "manage_users"
+      - "system_config"
+      - "delete_data"
+
+  3:
+    name: "researcher"
+    description: "Researcher level with data access and analysis permissions"
+    default_permissions:
+      - "read_all_data"
+      - "write_analysis_results"
+      - "read_experiment_data"
+      - "export_data"
+
+  2:
+    name: "student"
+    description: "Student level with limited data access permissions"
+    default_permissions:
+      - "read_public_data"
+      - "read_assigned_experiments"
+      - "basic_analysis"
+
+  1:
+    name: "guest"
+    description: "Guest level with access to public data only"
+    default_permissions:
+      - "read_public_data"
+
+# Permission definitions
+permissions:
+  read_all_data:
+    description: "Permission to read all data"
+    
+  write_all_data:
+    description: "Permission to write all data"
+    
+  manage_users:
+    description: "Permission to manage user accounts"
+    
+  system_config:
+    description: "System configuration permission"
+    
+  delete_data:
+    description: "Permission to delete data"
+    
+  read_experiment_data:
+    description: "Permission to read experimental data"
+    
+  write_analysis_results:
+    description: "Permission to write analysis results"
+    
+  export_data:
+    description: "Permission to export data"
+    
+  read_public_data:
+    description: "Permission to read public data"
+    
+  read_assigned_experiments:
+    description: "Permission to read assigned experimental data"
+    
+  basic_analysis:
+    description: "Basic analysis functionality permission"
+
+# API Key Configuration
+api_settings:
+  key_length: 32
+  key_prefix: "aot_"
+  expiration_days: 365
+  refresh_before_expiry_days: 30
+  
+# Security Settings
+security:
+  max_failed_attempts: 5
+  lockout_duration_minutes: 30
+  password_policy:
+    min_length: 8
+    require_uppercase: true
+    require_lowercase: true
+    require_numbers: true
+    require_special_chars: false
+    
+# System Settings
+system:
+  default_access_level: 1
+  require_approval_for_registration: true
+  admin_notification_email: "admin@aot.example.com"
+  log_access_attempts: true
