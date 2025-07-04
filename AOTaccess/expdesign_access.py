@@ -102,7 +102,7 @@ class ExpDesignAccess:
         Returns:
             list of str: Video indexes extracted from the movie file names.
         """
-        sessions_movies = self.append_all_trails_without_blanks(sub, ses)
+        sessions_movies = self.append_all_trials_without_blanks(sub, ses)
         video_indexes = [movie_name.split("_")[0] for movie_name in sessions_movies]
         print(
             f"Got video indexes for session {ses} of subject {sub}, length: {len(video_indexes)}"
@@ -120,7 +120,7 @@ class ExpDesignAccess:
         Returns:
             list of str: A list of unique video indexes.
         """
-        sessions_movies = self.append_all_trails_without_blanks(sub, ses)
+        sessions_movies = self.append_all_trials_without_blanks(sub, ses)
         video_indexes = [movie_name.split("_")[0] for movie_name in sessions_movies]
         unique_video_indexes = list(set(video_indexes))
         print(
