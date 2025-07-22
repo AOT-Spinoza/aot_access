@@ -55,6 +55,25 @@ class StimuliInfoAccess:
             pathlib.Path: Path to the video annotation directory.
         """
         return self.video_annotation_dir / f"{video_id:04d}_{direction}.mp4"
+    
+    def _temp_read_qwen_description(self, video_id: int, direction: str = "fw"):
+        """
+        Temporarily read the Qwen description text for a video.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+
+        Returns:
+            str: Content of the description text file.
+        """
+        # example : /tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
+        temp_root_dir = Path(
+            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_describe/videos_fw_describe_qwen_pure"
+        )
+        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
+        with open(temp_file, "r") as f:
+            return f.read()
 
     def _temp_read_llama_description(self, video_id: int, direction: str = "fw"):
         """
