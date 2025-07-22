@@ -6,6 +6,7 @@ import yaml
 import numpy as np
 import h5py
 import csv
+import json
 
 
 class StimuliInfoAccess:
@@ -74,6 +75,31 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
         with open(temp_file, "r") as f:
             return f.read()
+        
+    def _temp_read_qwen_embedding(self, video_id: int, direction: str = "fw"):
+        """
+        Temporarily read the Qwen embedding for a video.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+
+        Returns:
+            dict: Content of the embedding JSON file.
+        """
+        # example :  "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048/0001_fw_embedding.json"
+
+        temp_root_dir = Path(
+            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
+        )
+        temp_file = temp_root_dir / f"{video_id:04d}_{direction}_embedding.json"
+        with open(temp_file, "r") as f:
+            data = json.load(f)
+        embedding = data["data"][0]["embedding"]
+        #make is numpy array
+        embedding = np.array(embedding)
+        return embedding
+
 
     def _temp_read_llama_description(self, video_id: int, direction: str = "fw"):
         """
