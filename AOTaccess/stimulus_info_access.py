@@ -29,6 +29,7 @@ class StimuliInfoAccess:
             basedir = Path(__file__).resolve().parent
             settings = yaml.safe_load(open(basedir / "settings.yml"))
             self.video_dir = Path(settings["paths"]["videos"])
+            self.picture_dir = Path(settings["paths"]["pictures"])
             self.video_annotation_dir = Path(settings["paths"]["video_annotations"])
 
     def get_video_path(self, video_id: int, direction: str = "fw"):
@@ -43,6 +44,20 @@ class StimuliInfoAccess:
             pathlib.Path: Path to the video file.
         """
         return self.video_dir / f"{video_id:04d}_{direction}.mp4"
+    
+    def get_picture_path(self, video_id: int, direction: str = "fw"):
+        """
+        Get the picture file path.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+
+        Returns:
+            pathlib.Path: Path to the picture file.
+        """
+        return self.picture_dir / f"{video_id:04d}_{direction}.png"
+
 
     def get_video_annotation_dir(self, video_id, direction="fw"):
         """
