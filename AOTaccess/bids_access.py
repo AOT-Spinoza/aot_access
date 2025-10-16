@@ -15,19 +15,27 @@ class BidsAccess:
         else:
             self.bids_dir = bids_dir
 
-    def get_func_dir(self, sub: int, ses: int):
-        return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses:02d}" / "func"
+    def get_func_dir(self, sub: int, ses):
+        if type(ses) is int:
+            return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses:02d}" / "func"
+        else:
+            return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses}" / "func"
 
-    def read_events_tsv(self, sub: int, ses: int, run: int):
+    def read_events_tsv(self, sub: int, ses, run: int):
         func_dir = self.get_func_dir(sub, ses)
-        filepath = (
-            func_dir / f"sub-{sub:03d}_ses-{ses:02d}_task-AOT_run-{run:02d}_events.tsv"
-        )
+        if type(ses) is int:
+            filepath = (
+                func_dir / f"sub-{sub:03d}_ses-{ses:02d}_task-AOT_run-{run:02d}_events.tsv"
+            )
+        else:
+            filepath = (
+                func_dir / f"sub-{sub:03d}_ses-{ses}_task-AOT_run-{run:02d}_events.tsv"
+            )
         with open(filepath, "r") as f:
             return list(csv.DictReader(f, delimiter="\t"))
 
     def read_bold(
-        self, sub: int, ses: int, run: int, rec: str = "original", part: str = "mag"
+        self, sub: int, ses, run: int, rec: str = "original", part: str = "mag"
     ):
         """
         Load BOLD data from the BIDS directory.
@@ -42,14 +50,22 @@ class BidsAccess:
         Returns:
             nibabel.Nifti1Image: BOLD image data.
         """
+
         func_dir = self.get_func_dir(sub, ses)
-        bold_file = (
-            func_dir
-            / f"sub-{sub:03d}_ses-{ses:02d}_task-AOT_rec-{rec}_run-{run:02d}_part-{part}_bold.nii.gz"
-        )
+
+        if type(ses) is int:
+            bold_file = (
+                func_dir
+                / f"sub-{sub:03d}_ses-{ses:02d}_task-AOT_rec-{rec}_run-{run:02d}_part-{part}_bold.nii.gz"
+            )
+        else:
+            bold_file = (
+                func_dir
+                / f"sub-{sub:03d}_ses-{ses}_task-AOT_rec-{rec}_run-{run:02d}_part-{part}_bold.nii.gz"
+                )
         return nib.load(bold_file)
 
-    def read_sbref(self, sub: int, ses: int, part: str = "mag"):
+    def read_sbref(self, sub: int, ses, part: str = "mag"):
         """
         Load SBref data from the BIDS directory.
 
@@ -62,38 +78,66 @@ class BidsAccess:
             nibabel.Nifti1Image: SBref image data.
         """
         func_dir = self.get_func_dir(sub, ses)
-        sbref_file = func_dir / f"sub-{sub:03d}_ses-{ses:02d}_part-{part}_sbref.nii.gz"
+
+        if type(ses) is int:
+            sbref_file = func_dir / f"sub-{sub:03d}_ses-{ses:02d}_part-{part}_sbref.nii.gz"
+        else:
+            sbref_file = func_dir / f"sub-{sub:03d}_ses-{ses}_part-{part}_sbref.nii.gz"
         return nib.load(sbref_file)
 
-    def get_anat_dir(self, sub: int, ses: int):
-        return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses:02d}" / "anat"
+    def get_anat_dir(self, sub: int, ses):
+        if type(ses) is int:
+            return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses:02d}" / "anat"
+        else:
+            return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses}" / "anat"
 
-    def read_inplane_T2(self, sub: int, ses: int):
+    def read_inplane_T2(self, sub: int, ses):
         anat_dir = self.get_anat_dir(sub, ses)
-        t2_file = anat_dir / f"sub-{sub:03d}_ses-{ses:02d}_acq-GRE_inplaneT2.nii.gz"
+        if type(ses) is int:
+            t2_file = anat_dir / f"sub-{sub:03d}_ses-{ses:02d}_acq-GRE_inplaneT2.nii.gz"
+        else:
+            t2_file = anat_dir / f"sub-{sub:03d}_ses-{ses}_acq-GRE_inplaneT2.nii.gz"
         return nib.load(t2_file)
 
-    def get_beh_dir(self, sub: int, ses: int):
-        return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses:02d}" / "beh"
+    def get_beh_dir(self, sub: int, ses):
+        if type(ses) is int:
+            return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses:02d}" / "beh"
+        else:
+            return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses}" / "beh"
 
-    def read_memory_events(self, sub: int, ses: int, run: int = 1):
+    def read_memory_events(self, sub: int, ses, run: int = 1):
         beh_dir = self.get_beh_dir(sub, ses)
-        events_file = (
-            beh_dir
-            / f"sub-{sub:03d}_ses-{ses:02d}_task-memory_run-{run:02d}_events.tsv"
-        )
+        if type(ses) is int:
+            events_file = (
+                beh_dir
+                / f"sub-{sub:03d}_ses-{ses:02d}_task-memory_run-{run:02d}_events.tsv"
+            )
+        else:
+            events_file = (
+                beh_dir
+                / f"sub-{sub:03d}_ses-{ses}_task-memory_run-{run:02d}_events.tsv"
+            )
         with open(events_file, "r") as f:
             return list(csv.DictReader(f, delimiter="\t"))
 
-    def get_fmap_dir(self, sub: int, ses: int):
-        return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses:02d}" / "fmap"
+    def get_fmap_dir(self, sub: int, ses):
+        if type(ses) is int:
+            return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses:02d}" / "fmap"
+        else:
+            return self.bids_dir / f"sub-{sub:03d}" / f"ses-{ses}" / "fmap"
 
-    def read_fmap_file(self, sub: int, ses: int, acq: str, dir: str, run: int):
+    def read_fmap_file(self, sub: int, ses, acq: str, dir: str, run: int):
         fmap_dir = self.get_fmap_dir(sub, ses)
-        fmap_file = (
-            fmap_dir
-            / f"sub-{sub:03d}_ses-{ses:02d}_acq-{acq}_dir-{dir}_run-{run:02d}_epi.nii.gz"
-        )
+        if type(ses) is int:
+            fmap_file = (
+                fmap_dir
+                / f"sub-{sub:03d}_ses-{ses:02d}_acq-{acq}_dir-{dir}_run-{run:02d}_epi.nii.gz"
+            )
+        else:
+            fmap_file = (
+                fmap_dir
+                / f"sub-{sub:03d}_ses-{ses}_acq-{acq}_dir-{dir}_run-{run:02d}_epi.nii.gz"
+            )
         return nib.load(fmap_file)
 
     def read_global_json(self, filename: str):
@@ -114,27 +158,39 @@ class BidsAccess:
         with open(file_path, "r") as f:
             return json.load(f)
 
-    def read_output_csv(self, sub: int, ses: int, run: int):
+    def read_output_csv(self, sub: int, ses, run: int):
         """
         Reads any .csv file in the behavioral directory, e.g., output files.
         """
         beh_dir = self.get_beh_dir(sub, ses)
-        csv_path = (
-            beh_dir
-            / f"sub-{sub:03d}_ses-{ses:02d}_task-memory_run-{run:02d}_output.csv"
-        )
+        if type(ses) is int:
+            csv_path = (
+                beh_dir
+                / f"sub-{sub:03d}_ses-{ses:02d}_task-memory_run-{run:02d}_output.csv"
+            )
+        else:
+            csv_path = (
+                beh_dir
+                / f"sub-{sub:03d}_ses-{ses}_task-memory_run-{run:02d}_output.csv"
+            )
         with open(csv_path, "r") as f:
             return list(csv.DictReader(f))
 
     def read_phasediff(
-        self, sub: int, ses: int, run: int, acq: str = "nordic", part: str = "mag"
+        self, sub: int, ses, run: int, acq: str = "nordic", part: str = "mag"
     ):
         """
         Load phasediff data from the BIDS directory.
         """
         fmap_dir = self.get_fmap_dir(sub, ses)
-        phasediff_file = (
-            fmap_dir
-            / f"sub-{sub:03d}_ses-{ses:02d}_acq-{acq}_run-{run:02d}_part-{part}_phasediff.nii.gz"
-        )
+        if type(ses) is int:
+            phasediff_file = (
+                fmap_dir
+                / f"sub-{sub:03d}_ses-{ses:02d}_acq-{acq}_run-{run:02d}_part-{part}_phasediff.nii.gz"
+            )
+        else:
+            phasediff_file = (
+                fmap_dir
+                / f"sub-{sub:03d}_ses-{ses}_acq-{acq}_run-{run:02d}_part-{part}_phasediff.nii.gz"
+            )
         return nib.load(phasediff_file)
