@@ -760,10 +760,10 @@ class PrfAccess:
             list: List of method names.
         """
         return [
-            "read_R2",
             "read_eccentricity",
-            "read_prfsize",
             "read_polar_angle",
+            "read_R2",
+            "read_prfsize",
             "read_x_position",
             "read_y_position",
             "read_prf_amplitude",
