@@ -85,7 +85,16 @@ class GLMSingleAccess:
         Returns:
             tuple: The shape of the betas data.
         """
+        R2_file = self.get_R2_path(sub, ses, glmtype, resolution)
         R2 = self.read_R2(sub, ses, glmtype, resolution)
+        if R2 is None:
+            nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
+            raise FileNotFoundError(
+                "Missing GLMsingle R2 file; cannot infer session volume shape. "
+                f"Expected: {R2_file}. "
+                f"Directory: {nii_dir}. "
+                "Check that this subject/session was processed, and that 'glmtype' and 'resolution' match the output."
+            )
         return R2.shape
     
     def get_session_betas_path(
@@ -343,7 +352,15 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray (bool): Boolean array mask for the R2 data.
         """
+        R2_file = self.get_R2_path(sub, ses, glmtype, resolution)
         R2 = self.read_R2(sub, ses, glmtype, resolution)
+        if R2 is None:
+            nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
+            raise FileNotFoundError(
+                "Missing GLMsingle R2 file; cannot compute R2 mask. "
+                f"Expected: {R2_file}. "
+                f"Directory: {nii_dir}."
+            )
         R2_mask = R2 > threshold
         R2_mask = R2_mask.astype(bool)
         # print(f"Shape of R2 mask: {R2_mask.shape}")
