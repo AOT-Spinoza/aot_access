@@ -7,6 +7,7 @@ import numpy as np
 import h5py
 import csv
 import json
+import torch
 
 
 class StimuliInfoAccess:
@@ -231,6 +232,55 @@ class StimuliInfoAccess:
             )
             temp_file = temp_root_dir / f"{video_id:04d}_{direction}.mp4.npy"
             return np.load(temp_file)
+
+    def _temp_load_vae_latent(self, latent_file: Path, kind: str = "VAE"):
+        if not latent_file.exists():
+            raise FileNotFoundError(f"{kind} latent file not found: {latent_file}")
+
+        try:
+            payload = torch.load(latent_file, map_location="cpu", weights_only=False)
+        except TypeError:
+            payload = torch.load(latent_file, map_location="cpu")
+
+        latent = payload.get("latent")
+        if latent is None:
+            raise KeyError(f"Missing 'latent' in {kind} latent file: {latent_file}")
+
+        if isinstance(latent, torch.Tensor):
+            return latent.detach().cpu().numpy()
+        return np.asarray(latent)
+
+    def _temp_read_VAE_latents(self, video_id: int, direction: str = "fw"):
+        """
+        Temporarily load the VAE latent for a video.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+
+        Returns:
+            numpy.ndarray: VAE latent array.
+        """
+        temp_root_dir = Path("/projects/prjs1914/output/vae_latent_540p")
+        sample_name = f"{video_id:04d}_{direction}_16by9_960x544_crop_540p"
+        temp_file = temp_root_dir / sample_name / f"{sample_name}_latent.pt"
+        return self._temp_load_vae_latent(temp_file, kind="VAE")
+
+    def _temp_read_VAE_latents_averaged(self, video_id: int, direction: str = "fw"):
+        """
+        Temporarily load the time-averaged VAE latent for a video.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+
+        Returns:
+            numpy.ndarray: Averaged latent array.
+        """
+        temp_root_dir = Path("/projects/prjs1914/output/vae_latent_540p_time_averaged")
+        sample_name = f"{video_id:04d}_{direction}_16by9_960x544_crop_540p"
+        temp_file = temp_root_dir / sample_name / f"{sample_name}_latent.pt"
+        return self._temp_load_vae_latent(temp_file, kind="averaged VAE")
 
     def read_semantic_segmentation(self, video_id: int, direction: str = "fw"):
         """
