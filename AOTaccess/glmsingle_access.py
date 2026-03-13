@@ -47,7 +47,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
     ):
         """
         Get the nii directory path for a given subject and session.
@@ -72,7 +72,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
     ):
         """
         Get the shape of the betas data.
@@ -85,7 +85,16 @@ class GLMSingleAccess:
         Returns:
             tuple: The shape of the betas data.
         """
+        R2_file = self.get_R2_path(sub, ses, glmtype, resolution)
         R2 = self.read_R2(sub, ses, glmtype, resolution)
+        if R2 is None:
+            nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
+            raise FileNotFoundError(
+                "Missing GLMsingle R2 file; cannot infer session volume shape. "
+                f"Expected: {R2_file}. "
+                f"Directory: {nii_dir}. "
+                "Check that this subject/session was processed, and that 'glmtype' and 'resolution' match the output."
+            )
         return R2.shape
     
     def get_session_betas_path(
@@ -93,7 +102,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
         zscore: bool = False,
     ):
         """
@@ -103,7 +112,7 @@ class GLMSingleAccess:
             sub (int): Subject number.
             ses (int): Session number.
             glmtype (str): GLM type.
-            resolution (str): Resolution, default is "1.7mm".
+            resolution (str): Resolution, default is "2.0mm".
 
         Returns:
             pathlib.Path: Path to the betas file.
@@ -120,7 +129,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
         zscore: bool = False,
     ):
         """
@@ -151,7 +160,7 @@ class GLMSingleAccess:
         affine_matrix_path = (
             affine_source_path
             + f"/sub-{sub:03d}/"
-            + f"fiducial/epi_1.7mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+            + f"fiducial/epi_2.0mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
         # print("affine matrix source path:", affine_matrix_path)
@@ -165,7 +174,7 @@ class GLMSingleAccess:
         affine_matrix_path = (
             affine_source_path
             + f"/sub-{sub:03d}/"
-            + f"fiducial/epi_1.7mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+            + f"fiducial/epi_2.0mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
         # print("affine matrix source path:", affine_matrix_path)
@@ -177,7 +186,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
     ):
         """
         Get the path to the mean volume file for a given subject and session.
@@ -199,7 +208,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
     ):
         """
         Load and return the mean volume data for a given subject and session.
@@ -228,7 +237,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
     ):
         """
         Get the path to the R2 file for a given subject and session.
@@ -250,7 +259,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
     ):
         """
         Load and return the R2 data for a given subject and session.
@@ -278,7 +287,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
     ):
         """
         Get the path to the noise ceiling file for a given subject and session.
@@ -300,7 +309,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
     ):
         """
         Load and return the noise ceiling data for a given subject and session.
@@ -328,7 +337,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
         threshold: float = 0.2,
     ):
         """
@@ -343,7 +352,15 @@ class GLMSingleAccess:
         Returns:
             numpy.ndarray (bool): Boolean array mask for the R2 data.
         """
+        R2_file = self.get_R2_path(sub, ses, glmtype, resolution)
         R2 = self.read_R2(sub, ses, glmtype, resolution)
+        if R2 is None:
+            nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
+            raise FileNotFoundError(
+                "Missing GLMsingle R2 file; cannot compute R2 mask. "
+                f"Expected: {R2_file}. "
+                f"Directory: {nii_dir}."
+            )
         R2_mask = R2 > threshold
         R2_mask = R2_mask.astype(bool)
         # print(f"Shape of R2 mask: {R2_mask.shape}")
@@ -355,7 +372,7 @@ class GLMSingleAccess:
         video_num: int,
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
         zscore: bool = False,
     ):
         """
@@ -366,7 +383,7 @@ class GLMSingleAccess:
             video_num (int): Video number.
             direction (str): Video direction, default is "fw".
             glmtype (str): GLM type.
-            resolution (str): Resolution, default is "1.7mm".
+            resolution (str): Resolution, default is "2.0mm".
 
         Returns:
             pathlib.Path: Path to the betas file for the specified video.
@@ -397,7 +414,7 @@ class GLMSingleAccess:
         video_num: int,
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "2.0mm",
         zscore: bool = False,
         average_repeat: bool = False,
     ):
@@ -409,7 +426,7 @@ class GLMSingleAccess:
             video_num (int): Video number.
             direction (str): Video direction, default is "fw".
             glmtype (str): GLM type.
-            resolution (str): Resolution, default is "1.7mm".
+            resolution (str): Resolution, default is "2.0mm".
 
         Returns:
             numpy.ndarray or None: Array containing the video betas data, or None if the file does not exist.
