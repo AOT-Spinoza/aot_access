@@ -18,7 +18,7 @@ class GLMSingleAccess:
             None
         """
         if root_dir is not None:
-            self.glmsingle_main_dir = root_dir / "glmsingle"
+            self.glmsingle_main_dir = root_dir / "per_session"
             self.video_betas_dir = root_dir / "per_video"
         else:
             basedir = Path(__file__).resolve().parent
