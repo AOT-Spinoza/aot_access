@@ -266,6 +266,13 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / sample_name / f"{sample_name}_latent.pt"
         return self._temp_load_vae_latent(temp_file, kind="VAE")
 
+    def _temp_read_VAE_latents_flattened(self, video_id: int, direction: str = "fw"):
+        #example file : /projects/prjs1914/output/vae_latent_540p_flattened/0001_fw_16by9_960x544_crop_540p/0001_fw_16by9_960x544_crop_540p_latent_flattened.pt
+        temp_root_dir = Path("/projects/prjs1914/output/vae_latent_540p_flattened")
+        sample_name = f"{video_id:04d}_{direction}_16by9_960x544_crop_540p"
+        temp_file = temp_root_dir / sample_name / f"{sample_name}_latent_flattened.pt"
+        return self._temp_load_vae_latent(temp_file, kind="flattened VAE")
+
     def _temp_read_VAE_latents_averaged(self, video_id: int, direction: str = "fw"):
         """
         Temporarily load the time-averaged VAE latent for a video.
