@@ -6,6 +6,17 @@ import yaml
 import nibabel as nib
 
 
+def _resolve_anatomy_root():
+    candidates = [
+        Path("/projects/prjs1914/output/anat-3T"),
+        Path("/tank/shared/2024/visual/AOT/derivatives/anat-3T"),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
 class GLMSingleAccess:
     def __init__(self, stctype="nordicstc", root_dir: Path = None):
         """
@@ -156,11 +167,13 @@ class GLMSingleAccess:
     def read_affine(
         self, sub: int
     ):  # for new data each sunject shouold have a single affine matrix for all sessions
-        affine_source_path = "/tank/shared/2024/visual/AOT/derivatives/anat-3T"
+        affine_source_path = _resolve_anatomy_root()
         affine_matrix_path = (
             affine_source_path
-            + f"/sub-{sub:03d}/"
-            + f"fiducial/epi_2.0mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+            / f"sub-{sub:03d}"
+            / "fiducial"
+            / "epi_2.0mm"
+            / f"sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
         # print("affine matrix source path:", affine_matrix_path)
@@ -170,11 +183,13 @@ class GLMSingleAccess:
     def read_header(
         self, sub: int
     ):  # for new data each sunject shouold have a single affine matrix for all sessions
-        affine_source_path = "/tank/shared/2024/visual/AOT/derivatives/anat-3T"
+        affine_source_path = _resolve_anatomy_root()
         affine_matrix_path = (
             affine_source_path
-            + f"/sub-{sub:03d}/"
-            + f"fiducial/epi_2.0mm/sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+            / f"sub-{sub:03d}"
+            / "fiducial"
+            / "epi_2.0mm"
+            / f"sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
         # print("affine matrix source path:", affine_matrix_path)
