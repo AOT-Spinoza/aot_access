@@ -289,6 +289,72 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / sample_name / f"{sample_name}_latent.pt"
         return self._temp_load_vae_latent(temp_file, kind="averaged VAE")
 
+    def _temp_load_hunyuan_text_encoder_artifacts(self, artifact_file: Path):
+        if not artifact_file.exists():
+            raise FileNotFoundError(
+                f"Hunyuan text encoder artifact file not found: {artifact_file}"
+            )
+
+        try:
+            payload = torch.load(artifact_file, map_location="cpu", weights_only=False)
+        except TypeError:
+            payload = torch.load(artifact_file, map_location="cpu")
+
+        if not isinstance(payload, dict):
+            raise TypeError(
+                f"Unexpected Hunyuan artifact payload type {type(payload)!r} in {artifact_file}"
+            )
+
+        return payload
+
+    def _temp_extract_hunyuan_prompt_embeds(self, payload: dict, encoder_key: str, artifact_file: Path):
+        pipeline_inputs = payload.get("pipeline_inputs")
+        if not isinstance(pipeline_inputs, dict):
+            raise KeyError(
+                f"Missing 'pipeline_inputs' in Hunyuan artifact file: {artifact_file}"
+            )
+
+        encoder_payload = pipeline_inputs.get(encoder_key)
+        if not isinstance(encoder_payload, dict):
+            raise KeyError(
+                f"Missing '{encoder_key}' encoder payload in Hunyuan artifact file: {artifact_file}"
+            )
+
+        positive_payload = encoder_payload.get("positive")
+        if not isinstance(positive_payload, dict):
+            raise KeyError(
+                f"Missing '{encoder_key}.positive' payload in Hunyuan artifact file: {artifact_file}"
+            )
+
+        prompt_embeds = positive_payload.get("prompt_embeds")
+        if prompt_embeds is None:
+            raise KeyError(
+                f"Missing '{encoder_key}.positive.prompt_embeds' in Hunyuan artifact file: {artifact_file}"
+            )
+
+        if isinstance(prompt_embeds, torch.Tensor):
+            return prompt_embeds.detach().cpu().numpy()
+        return np.asarray(prompt_embeds)
+
+    def _temp_read_hunyuan_MLLM_latents(self, video_id: int, direction: str = "fw"):
+        # example file: /projects/prjs1914/output/hunyuan_text_embeddings/0001_fw/text_encoder_artifacts.pt
+        temp_root_dir = Path("/projects/prjs1914/output/hunyuan_text_embeddings")
+        sample_name = f"{video_id:04d}_{direction}"
+        artifact_file = temp_root_dir / sample_name / "text_encoder_artifacts.pt"
+        payload = self._temp_load_hunyuan_text_encoder_artifacts(artifact_file)
+        return self._temp_extract_hunyuan_prompt_embeds(
+            payload, encoder_key="llm", artifact_file=artifact_file
+        )
+
+    def _temp_read_hunyuan_CLIP_latents(self, video_id: int, direction: str = "fw"):
+        temp_root_dir = Path("/projects/prjs1914/output/hunyuan_text_embeddings")
+        sample_name = f"{video_id:04d}_{direction}"
+        artifact_file = temp_root_dir / sample_name / "text_encoder_artifacts.pt"
+        payload = self._temp_load_hunyuan_text_encoder_artifacts(artifact_file)
+        return self._temp_extract_hunyuan_prompt_embeds(
+            payload, encoder_key="clipL", artifact_file=artifact_file
+        )
+
     def read_semantic_segmentation(self, video_id: int, direction: str = "fw"):
         """
         Read and return semantic segmentation data for a video.
