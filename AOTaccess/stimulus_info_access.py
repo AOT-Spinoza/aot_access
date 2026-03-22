@@ -336,6 +336,32 @@ class StimuliInfoAccess:
             temp_file, kind="SD3.5 time-averaged flattened VAE"
         )
 
+    def _temp_read_LaVIT_motion_pre_quant_latent_flattened(
+        self, video_id: int, direction: str = "fw"
+    ):
+        """
+        Temporarily load flattened Video-LaVIT motion pre-quant latent for a video.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+
+        Returns:
+            numpy.ndarray: Flattened motion pre-quant latent array.
+        """
+        temp_root_dir = Path(
+            "/projects/prjs1914/output/LaVIT_540p_motion_pre_quant_latent_flattened"
+        )
+        sample_name = f"{video_id:04d}_{direction}_16by9_960x544_crop_540p"
+        temp_file = (
+            temp_root_dir
+            / sample_name
+            / f"{sample_name}__motion_pre_quant_latent_flattened.pt"
+        )
+        return self._temp_load_vae_latent(
+            temp_file, kind="LaVIT motion pre-quant flattened"
+        )
+
     def _temp_load_hunyuan_text_encoder_artifacts(self, artifact_file: Path):
         if not artifact_file.exists():
             raise FileNotFoundError(
