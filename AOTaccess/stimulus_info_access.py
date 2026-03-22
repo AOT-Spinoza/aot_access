@@ -273,7 +273,7 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / sample_name / f"{sample_name}_latent_flattened.pt"
         return self._temp_load_vae_latent(temp_file, kind="flattened VAE")
 
-    def _temp_read_VAE_latents_averaged(self, video_id: int, direction: str = "fw"):
+    def _temp_read_VAE_latents_time_averaged(self, video_id: int, direction: str = "fw"):
         """
         Temporarily load the time-averaged VAE latent for a video.
 
@@ -282,12 +282,29 @@ class StimuliInfoAccess:
             direction (str): Video direction, default is "fw".
 
         Returns:
-            numpy.ndarray: Averaged latent array.
+            numpy.ndarray: Time-averaged latent array.
         """
         temp_root_dir = Path("/projects/prjs1914/output/vae_latent_540p_time_averaged")
         sample_name = f"{video_id:04d}_{direction}_16by9_960x544_crop_540p"
         temp_file = temp_root_dir / sample_name / f"{sample_name}_latent.pt"
-        return self._temp_load_vae_latent(temp_file, kind="averaged VAE")
+        return self._temp_load_vae_latent(temp_file, kind="time-averaged VAE")
+
+    def _temp_read_VAE_latents_time_averaged_flattened(self, video_id: int, direction: str = "fw"):
+        """
+        Temporarily load the time-averaged and flattened VAE latent for a video.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+
+        Returns:
+            numpy.ndarray: Time-averaged and flattened latent array.
+        """
+        #example : "/projects/prjs1914/output/vae_latent_540p_time_averaged_flattened/0001_fw_16by9_960x544_crop_540p/0001_fw_16by9_960x544_crop_540p_latent_time_averaged_flattened.pt"
+        temp_root_dir = Path("/projects/prjs1914/output/vae_latent_540p_time_averaged_flattened")
+        sample_name = f"{video_id:04d}_{direction}_16by9_960x544_crop_540p"
+        temp_file = temp_root_dir / sample_name / f"{sample_name}_latent_time_averaged_flattened.pt"
+        return self._temp_load_vae_latent(temp_file, kind="time-averaged flattened VAE")
 
     def _temp_load_hunyuan_text_encoder_artifacts(self, artifact_file: Path):
         if not artifact_file.exists():
