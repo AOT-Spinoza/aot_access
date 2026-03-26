@@ -105,9 +105,20 @@ class StimuliInfoAccess:
         """
         # example :  "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048/0001_fw_embedding.json"
 
-        temp_root_dir = Path(
+        temp_root_dir1 = Path(
             "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
         )
+        temp_root_dir2 = Path(
+            "/projects/prjs1914/output/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
+        )
+
+        if temp_root_dir1.exists():
+            temp_root_dir = temp_root_dir1
+        elif temp_root_dir2.exists():
+            temp_root_dir = temp_root_dir2
+        else:
+            raise FileNotFoundError(f"Qwen embedding file not found: {temp_root_dir1} or {temp_root_dir2}")
+
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}_embedding.json"
         with open(temp_file, "r") as f:
             data = json.load(f)
@@ -227,9 +238,19 @@ class StimuliInfoAccess:
             temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
             return np.load(temp_file)
         elif highest_freq == 32:
-            temp_root_dir = Path(
+            temp_root_dir1 = Path(
                 "/tank/shared/2024/visual/AOT/temp/motion_freq_test[0,2,4,8,16,32]"
             )
+            temp_root_dir2 = Path(
+                "/projects/prjs1914/output/MEfeatures"
+            )
+
+            if temp_root_dir1.exists():
+                temp_root_dir = temp_root_dir1
+            elif temp_root_dir2.exists():
+                temp_root_dir = temp_root_dir2
+            else:
+                raise FileNotFoundError(f"Motion energy features file not found: {temp_root_dir1} or {temp_root_dir2}")
             temp_file = temp_root_dir / f"{video_id:04d}_{direction}.mp4.npy"
             return np.load(temp_file)
 
