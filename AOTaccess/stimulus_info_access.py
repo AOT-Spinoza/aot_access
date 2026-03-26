@@ -242,7 +242,7 @@ class StimuliInfoAccess:
                 "/tank/shared/2024/visual/AOT/temp/motion_freq_test[0,2,4,8,16,32]"
             )
             temp_root_dir2 = Path(
-                "/projects/prjs1914/output/MEfeatures"
+                "/projects/prjs1914/output/motion_freq_test[0,2,4,8,16,32]"  
             )
 
             if temp_root_dir1.exists():
