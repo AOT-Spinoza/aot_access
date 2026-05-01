@@ -19,7 +19,8 @@ class ExpDesignAccess:
             None
         """
         if root_dir is not None:
-            self.root_expdesign_dir = root_dir / "expdesign"
+            self.root_expdesign_dir = root_dir / "aot/data/experiment/settings/main"
+            self.run_number = 10
         else:
             basedir = Path(__file__).resolve().parent
             settings = yaml.safe_load(open(basedir / "settings.yml"))
