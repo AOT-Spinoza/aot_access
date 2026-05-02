@@ -9,7 +9,7 @@ import nibabel as nib
 def _resolve_anatomy_root():
     candidates = [
         Path("/projects/prjs1914/derivatives/anat-3T"),
-        Path("/tank/shared/2024/visual/AOT/derivatives/anat-3T"),
+        Path("/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/anat-3T"),
     ]
     for candidate in candidates:
         if candidate.exists():

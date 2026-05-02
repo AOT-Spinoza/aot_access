@@ -2,7 +2,7 @@ from AOTaccess.expdesign_access import ExpDesignAccess
 import os
 
 expaccess = ExpDesignAccess()
-output_root = "/tank/shared/2024/visual/AOT/temp/AOTsession_trials"
+output_root = "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/temp/AOTsession_trials"
 if not os.path.exists(output_root):
     os.makedirs(output_root)
 

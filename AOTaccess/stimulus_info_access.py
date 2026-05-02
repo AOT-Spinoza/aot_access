@@ -84,9 +84,9 @@ class StimuliInfoAccess:
         Returns:
             str: Content of the description text file.
         """
-        # example : /tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
+        # example : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
         temp_root_dir = Path(
-            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_describe/videos_fw_describe_qwen_pure"
+            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_describe/videos_fw_describe_qwen_pure"
         )
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
         with open(temp_file, "r") as f:
@@ -103,10 +103,10 @@ class StimuliInfoAccess:
         Returns:
             dict: Content of the embedding JSON file.
         """
-        # example :  "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048/0001_fw_embedding.json"
+        # example :  "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048/0001_fw_embedding.json"
 
         temp_root_dir1 = Path(
-            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
+            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
         )
         temp_root_dir2 = Path(
             "/projects/prjs1914/output/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
@@ -139,9 +139,9 @@ class StimuliInfoAccess:
         Returns:
             str: Content of the description text file.
         """
-        # example : /tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
+        # example : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
         temp_root_dir = Path(
-            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean"
+            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean"
         )
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
         with open(temp_file, "r") as f:
@@ -158,9 +158,9 @@ class StimuliInfoAccess:
         Returns:
             str: Content of the description text file.
         """
-        # example : /tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
+        # example : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
         temp_root_dir = Path(
-            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/withsample_t0.2_r1_v2.1"
+            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/withsample_t0.2_r1_v2.1"
         )
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
         with open(temp_file, "r") as f:
@@ -178,8 +178,8 @@ class StimuliInfoAccess:
             numpy.ndarray: Loaded SBERT embeddings.
         """
         temp_root_dir = Path(
-            # "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
-            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert_all-mpnet-base-v2/simple_describe_en_withsample_cleaned_embeddings_averaged"
+            # "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
+            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert_all-mpnet-base-v2/simple_describe_en_withsample_cleaned_embeddings_averaged"
         )
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
@@ -196,7 +196,7 @@ class StimuliInfoAccess:
             numpy.ndarray: Loaded PCA-transformed embeddings.
         """
         temp_root_dir = Path(
-            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert_all-mpnet-base-v2/pca_embeddings"
+            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert_all-mpnet-base-v2/pca_embeddings"
         )
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
@@ -213,7 +213,7 @@ class StimuliInfoAccess:
             numpy.ndarray: Loaded SAE-transformed embeddings.
         """
         temp_root_dir = Path(
-            "/tank/shared/2024/visual/AOT/derivatives/DLoutputs/sbert_all-mpnet-base-v2/sae_embeddings"
+            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert_all-mpnet-base-v2/sae_embeddings"
         )
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
@@ -233,13 +233,13 @@ class StimuliInfoAccess:
         """
         if highest_freq == 16:
             temp_root_dir = Path(
-                "/tank/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
+                "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
             )
             temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
             return np.load(temp_file)
         elif highest_freq == 32:
             temp_root_dir1 = Path(
-                "/tank/shared/2024/visual/AOT/temp/motion_freq_test[0,2,4,8,16,32]"
+                "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/temp/motion_freq_test[0,2,4,8,16,32]"
             )
             temp_root_dir2 = Path(
                 "/projects/prjs1914/output/motion_freq_test[0,2,4,8,16,32]"  
@@ -460,7 +460,7 @@ class StimuliInfoAccess:
         Returns:
             numpy.ndarray: The segmentation data from the HDF5 file.
         """
-        # temp : /tank/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/semantic_segmentation/FCN_ResNet101/0001_fw_FCN_ResNet101.hdf5
+        # temp : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/semantic_segmentation/FCN_ResNet101/0001_fw_FCN_ResNet101.hdf5
         video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
         filepath = (
             video_annotation_dir
@@ -482,7 +482,7 @@ class StimuliInfoAccess:
         Returns:
             numpy.ndarray: The action detection data from the HDF5 file.
         """
-        # temp : /tank/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/action_detection/slowfast_r50_detection/0001_fw_slowfast_r50_detection.hdf5
+        # temp : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/action_detection/slowfast_r50_detection/0001_fw_slowfast_r50_detection.hdf5
         video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
         filepath = (
             video_annotation_dir
@@ -504,7 +504,7 @@ class StimuliInfoAccess:
         Returns:
             list of list: Rows read from the CSV file containing action classification.
         """
-        # temp : /tank/shared/2024/visual/AOT/derivatives/stimuli/annotations/0003_rv.mp4/action_classification/X3D/0003_rv.mp4_X3D.csv
+        # temp : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/annotations/0003_rv.mp4/action_classification/X3D/0003_rv.mp4_X3D.csv
         video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
         filepath = (
             video_annotation_dir
@@ -527,7 +527,7 @@ class StimuliInfoAccess:
         Returns:
             list of list: Rows read from the CSV file containing captions.
         """
-        # temp : /tank/shared/2024/visual/AOT/derivatives/stimuli/annotations/0011_fw.mp4/captioning/GIT/0011_fw.mp4_GIT.csv
+        # temp : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/annotations/0011_fw.mp4/captioning/GIT/0011_fw.mp4_GIT.csv
         video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
         filepath = (
             video_annotation_dir
@@ -550,7 +550,7 @@ class StimuliInfoAccess:
         Returns:
             numpy.ndarray: Depth estimation data from the HDF5 file.
         """
-        # temp : /tank/shared/2024/visual/AOT/derivatives/stimuli/annotations/0011_fw.mp4/depth_estimation/MiDaS/0011_fw.mp4_MiDaS.hdf5
+        # temp : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/annotations/0011_fw.mp4/depth_estimation/MiDaS/0011_fw.mp4_MiDaS.hdf5
         video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
         filepath = (
             video_annotation_dir
@@ -572,7 +572,7 @@ class StimuliInfoAccess:
         Returns:
             numpy.ndarray: The keypoint detection data from the HDF5 file.
         """
-        # temp : /tank/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/keypoints/KeypointRCNN_ResNet50/0001_fw_KeypointRCNN_ResNet50.hdf5
+        # temp : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/keypoints/KeypointRCNN_ResNet50/0001_fw_KeypointRCNN_ResNet50.hdf5
         video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
         filepath = (
             video_annotation_dir
@@ -594,7 +594,7 @@ class StimuliInfoAccess:
         Returns:
             numpy.ndarray: The segmentation data from the HDF5 file.
         """
-        # temp : /tank/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/instance_segmentation/MaskRCNN_ResNet50_FPN/0001_fw_MaskRCNN_ResNet50_FPN.hdf5
+        # temp : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/instance_segmentation/MaskRCNN_ResNet50_FPN/0001_fw_MaskRCNN_ResNet50_FPN.hdf5
         video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
         filepath = (
             video_annotation_dir
@@ -616,7 +616,7 @@ class StimuliInfoAccess:
         Returns:
             numpy.ndarray: The object detection data from the HDF5 file.
         """
-        # temp : /tank/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/object_detection/fasterrcnn_resnet50_fpn_v2/0001_fw_fasterrcnn_resnet50_fpn_v2.hdf5
+        # temp : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/annotations/0001_fw.mp4/object_detection/fasterrcnn_resnet50_fpn_v2/0001_fw_fasterrcnn_resnet50_fpn_v2.hdf5
         video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
         filepath = (
             video_annotation_dir

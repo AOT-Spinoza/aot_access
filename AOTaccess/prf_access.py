@@ -57,7 +57,7 @@ class PrfAccess:
         runpart:str="firsthalf",
         rec:str="nordicstc",
     ):
-       #/tank/shared/2024/visual/AOT/derivatives/prf/sub-001/prf_fits/params/sub-001_ses-pRF_task-pRF_rec-nordicstc_run-firsthalf_model-gauss_stage-iter_space-epi_1.7mm_desc-prf_params_r2.nii.gz
+       #/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/prf/sub-001/prf_fits/params/sub-001_ses-pRF_task-pRF_rec-nordicstc_run-firsthalf_model-gauss_stage-iter_space-epi_1.7mm_desc-prf_params_r2.nii.gz
 
         """
         Get the path to the main glmsingle directory.
