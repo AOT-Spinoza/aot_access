@@ -17,6 +17,29 @@ def _resolve_anatomy_root():
     return candidates[0]
 
 
+MODEL_ENTITY_MAP = {
+    "TYPEA_ONOFF": "TYPEA",
+    "TYPEB_FITHRF": "TYPEB",
+    "TYPEC_FITHRF_GLMDENOISE": "TYPEC",
+    "TYPED_FITHRF_GLMDENOISE_RR": "TYPED",
+}
+
+
+def build_per_session_bids_nii(sub, ses, resolution, model, desc):
+    model_entity = MODEL_ENTITY_MAP.get(model, model)
+    return f"sub-{sub:03d}_ses-{ses:02d}_space-T1w_res-{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
+
+
+def build_per_video_bids_nii(sub, resolution, model, video_num, zscore=True):
+    model_entity = MODEL_ENTITY_MAP.get(model, model)
+    suffix = "betaszscore" if zscore else "betas"
+    return f"sub-{sub:03d}_space-T1w_res-{resolution}_model-{model_entity}_desc-{video_num:04d}{suffix}.nii.gz"
+
+
+def build_figure_bids_png(sub, ses, resolution, desc):
+    return f"sub-{sub:03d}_ses-{ses:02d}_res-{resolution}_desc-{desc}.png"
+
+
 class GLMSingleAccess:
     def __init__(self, stctype="nordicstc", root_dir: Path = None):
         """
@@ -57,24 +80,26 @@ class GLMSingleAccess:
         self,
         sub: int,
         ses: int,
-        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        glmtype: str = None,
         resolution: str = "2.0mm",
     ):
         """
-        Get the nii directory path for a given subject and session.
+        Get the nii directory path for a given subject, session and resolution.
 
         Parameters:
             sub (int): Subject number.
             ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
+            glmtype (str): GLM type (kept for backward compat, unused in path).
+            resolution (str): Resolution, default is "2.0mm".
 
         Returns:
-            pathlib.Path: Directory path where betas and other files are located.
+            pathlib.Path: Directory path where BIDS-named nifti files are located.
         """
         glm_type_dir = (
             self.glmsingle_main_dir
-            / f"sub-{sub:03d}_ses-{ses:02d}_T1W_{self.stctype}_{resolution}"
-            / glmtype
+            / f"sub-{sub:03d}"
+            / f"ses-{ses:02d}"
+            / f"res-{resolution}"
         )
         return glm_type_dir
 
@@ -99,7 +124,7 @@ class GLMSingleAccess:
         R2_file = self.get_R2_path(sub, ses, glmtype, resolution)
         R2 = self.read_R2(sub, ses, glmtype, resolution)
         if R2 is None:
-            nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
+            nii_dir = self.get_nii_dir_path(sub, ses, resolution=resolution)
             raise FileNotFoundError(
                 "Missing GLMsingle R2 file; cannot infer session volume shape. "
                 f"Expected: {R2_file}. "
@@ -128,11 +153,9 @@ class GLMSingleAccess:
         Returns:
             pathlib.Path: Path to the betas file.
         """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
-        if zscore:
-            betas_file = nii_dir / "betasmd_zscore.nii.gz"
-        else:
-            betas_file = nii_dir / "betasmd.nii.gz"
+        nii_dir = self.get_nii_dir_path(sub, ses, resolution=resolution)
+        desc = "betasmdzscore" if zscore else "betasmd"
+        betas_file = nii_dir / build_per_session_bids_nii(sub, ses, resolution, glmtype, desc)
         return betas_file
 
     def read_betas(  # by session
@@ -214,8 +237,8 @@ class GLMSingleAccess:
         Returns:
             pathlib.Path: Path to the mean volume file.
         """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
-        meanvol_file = nii_dir / "meanvol.nii.gz"
+        nii_dir = self.get_nii_dir_path(sub, ses, resolution=resolution)
+        meanvol_file = nii_dir / build_per_session_bids_nii(sub, ses, resolution, glmtype, "meanvol")
         return meanvol_file
 
     def read_meanvol(
@@ -265,8 +288,8 @@ class GLMSingleAccess:
         Returns:
             pathlib.Path: Path to the R2 file.
         """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
-        R2_file = nii_dir / "R2.nii.gz"
+        nii_dir = self.get_nii_dir_path(sub, ses, resolution=resolution)
+        R2_file = nii_dir / build_per_session_bids_nii(sub, ses, resolution, glmtype, "R2")
         return R2_file
 
     def read_R2(
@@ -303,6 +326,7 @@ class GLMSingleAccess:
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "2.0mm",
+        direction: str = "fw",
     ):
         """
         Get the path to the noise ceiling file for a given subject and session.
@@ -311,12 +335,13 @@ class GLMSingleAccess:
             sub (int): Subject number.
             ses (int): Session number.
             glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
+            direction (str): Video direction, default is "fw".
 
         Returns:
             pathlib.Path: Path to the noise ceiling file.
         """
-        nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
-        nc_file = nii_dir / "noiseceiling.nii.gz"
+        nii_dir = self.get_nii_dir_path(sub, ses, resolution=resolution)
+        nc_file = nii_dir / build_per_session_bids_nii(sub, ses, resolution, glmtype, f"noiseceiling_dir-{direction}")
         return nc_file
     
     def read_noiseceiling(
@@ -325,6 +350,7 @@ class GLMSingleAccess:
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "2.0mm",
+        direction: str = "fw",
     ):
         """
         Load and return the noise ceiling data for a given subject and session.
@@ -333,11 +359,12 @@ class GLMSingleAccess:
             sub (int): Subject number.
             ses (int): Session number.
             glmtype (str): GLM type.
+            direction (str): Video direction, default is "fw".
 
         Returns:
             numpy.ndarray: Array containing the loaded noise ceiling data.
         """
-        nc_file = self.get_noiseceiling_path(sub, ses, glmtype, resolution)
+        nc_file = self.get_noiseceiling_path(sub, ses, glmtype, resolution, direction)
         if not os.path.exists(nc_file):
             # print(f"File {nc_file} does not exist")
             return None
@@ -370,7 +397,7 @@ class GLMSingleAccess:
         R2_file = self.get_R2_path(sub, ses, glmtype, resolution)
         R2 = self.read_R2(sub, ses, glmtype, resolution)
         if R2 is None:
-            nii_dir = self.get_nii_dir_path(sub, ses, glmtype, resolution)
+            nii_dir = self.get_nii_dir_path(sub, ses, resolution=resolution)
             raise FileNotFoundError(
                 "Missing GLMsingle R2 file; cannot compute R2 mask. "
                 f"Expected: {R2_file}. "
@@ -378,7 +405,6 @@ class GLMSingleAccess:
             )
         R2_mask = R2 > threshold
         R2_mask = R2_mask.astype(bool)
-        # print(f"Shape of R2 mask: {R2_mask.shape}")
         return R2_mask
     
     def get_video_betas_path(
@@ -403,24 +429,13 @@ class GLMSingleAccess:
         Returns:
             pathlib.Path: Path to the betas file for the specified video.
         """
-        if zscore:
-            beta_file = (
-                self.video_betas_dir
-                / f"sub-{sub:03d}"
-                / resolution
-                / glmtype
-                / direction
-                / f"{video_num:04d}_{direction}_betas_zscore.nii.gz"
-            )
-        else:
-            beta_file = (
-                self.video_betas_dir
-                / f"sub-{sub:03d}"
-                / resolution
-                / glmtype
-                / direction
-                / f"{video_num:04d}_{direction}_betas.nii.gz"
-            )
+        beta_dir = (
+            self.video_betas_dir
+            / f"sub-{sub:03d}"
+            / f"res-{resolution}"
+            / direction
+        )
+        beta_file = beta_dir / build_per_video_bids_nii(sub, resolution, glmtype, video_num, zscore)
         return beta_file
 
     def read_video_betas(
