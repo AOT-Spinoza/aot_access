@@ -254,6 +254,28 @@ class StimuliInfoAccess:
             temp_file = temp_root_dir / f"{video_id:04d}_{direction}.mp4.npy"
             return np.load(temp_file)
 
+    def read_motion_energy_features(
+        self, video_id: int, direction: str = "fw", highest_freq: int = 32
+    ):
+        """
+        Read and return motion energy features for a video.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+            highest_freq (int): Motion energy frequency, 16 or 32. Default is 32.
+
+        Returns:
+            numpy.ndarray: Loaded motion energy features.
+        """
+        video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
+        filepath = (
+            video_annotation_dir
+            / "motion_energy" / f"{highest_freq}hz"
+            / f"{video_id:04d}_{direction}.npy"
+        )
+        return np.load(filepath)
+
     def _temp_load_vae_latent(self, latent_file: Path, kind: str = "VAE"):
         if not latent_file.exists():
             raise FileNotFoundError(f"{kind} latent file not found: {latent_file}")
