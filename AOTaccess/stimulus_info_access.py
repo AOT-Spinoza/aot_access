@@ -91,7 +91,27 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
         with open(temp_file, "r") as f:
             return f.read()
-        
+
+    def read_qwen_description(self, video_id: int, direction: str = "fw"):
+        """
+        Read and return the Qwen description text for a video.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+
+        Returns:
+            str: Content of the description text file.
+        """
+        video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
+        filepath = (
+            video_annotation_dir
+            / "qwen_description"
+            / f"{video_id:04d}_{direction}.txt"
+        )
+        with open(filepath, "r") as f:
+            return f.read()
+         
     def _temp_read_qwen_embedding(self, video_id: int, direction: str = "fw"):
         """
         Temporarily read the Qwen embedding for a video.
@@ -126,6 +146,28 @@ class StimuliInfoAccess:
         #make is numpy array
         embedding = np.array(embedding)
         return embedding
+
+    def read_qwen_embedding(self, video_id: int, direction: str = "fw"):
+        """
+        Read and return the Qwen embedding for a video.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): Video direction, default is "fw".
+
+        Returns:
+            numpy.ndarray: Qwen embedding array.
+        """
+        video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
+        filepath = (
+            video_annotation_dir
+            / "qwen_embedding"
+            / f"{video_id:04d}_{direction}_embedding.json"
+        )
+        with open(filepath, "r") as f:
+            data = json.load(f)
+        embedding = data["data"][0]["embedding"]
+        return np.array(embedding)
 
 
     def _temp_read_llama_description(self, video_id: int, direction: str = "fw"):
