@@ -219,7 +219,7 @@ class StimuliInfoAccess:
         return np.load(temp_file)
 
     def _temp_read_motion_energy_features(
-        self, video_id: int, direction: str = "fw", highest_freq=16
+        self, video_id: int, direction: str = "fw", highest_freq=32
     ):
         """
         Temporarily load motion energy features for a video.
