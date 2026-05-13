@@ -48,7 +48,7 @@ class AOTAccess:
         header = self.glmsingle_access.read_header(sub)
         return affine, header
 
-    def read_meanvol_from_session(self, sub: int, ses: int, resolution: str = "1.7mm"):
+    def read_meanvol_from_session(self, sub: int, ses: int, resolution: str = "1p7mm"):
         """
         Read mean volume data for a session.
         """
@@ -61,7 +61,7 @@ class AOTAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "1p7mm",
     ):
         """
         Read beta values for a session.
@@ -76,7 +76,7 @@ class AOTAccess:
         video: int,
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "1p7mm",
     ):
         """
         Read beta values for a specific video.
@@ -94,7 +94,7 @@ class AOTAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "1p7mm",
     ):
         """
         Read R2 values for a session.
@@ -109,7 +109,7 @@ class AOTAccess:
         ses: int,
         threshold: float = 0.2,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1.7mm",
+        resolution: str = "1p7mm",
     ):
         """
         Read R2 mask for a session with given threshold.
@@ -135,7 +135,7 @@ class AOTAccess:
         return self.expdesign_access.get_session_id_from_video_id(sub, video)
 
     def read_preproced_bold_from_session(
-        self, sub: int, ses: int, run: int, resolution: str = "1.7mm"
+        self, sub: int, ses: int, run: int, resolution: str = "1p7mm"
     ):
         """
         Read preprocessed BOLD data for a session.
