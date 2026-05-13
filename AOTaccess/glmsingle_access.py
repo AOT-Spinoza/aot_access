@@ -24,20 +24,29 @@ MODEL_ENTITY_MAP = {
     "TYPED_FITHRF_GLMDENOISE_RR": "TYPED",
 }
 
+INPUT_RESOLUTION_MAP = {
+    "2p0mm": "2.0mm",
+    "1p25mm": "1.25mm",
+}
+
+
+def to_input_resolution(resolution: str) -> str:
+    return INPUT_RESOLUTION_MAP.get(resolution, resolution)
+
 
 def build_per_session_bids_nii(sub, ses, resolution, model, desc):
     model_entity = MODEL_ENTITY_MAP.get(model, model)
-    return f"sub-{sub:03d}_ses-{ses:02d}_space-T1w_res-{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
+    return f"sub-{sub:03d}_ses-{ses:02d}_space-epi{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
 
 
 def build_per_video_bids_nii(sub, resolution, model, video_num, zscore=True):
     model_entity = MODEL_ENTITY_MAP.get(model, model)
     suffix = "betaszscore" if zscore else "betas"
-    return f"sub-{sub:03d}_space-T1w_res-{resolution}_model-{model_entity}_desc-{video_num:04d}{suffix}.nii.gz"
+    return f"sub-{sub:03d}_space-epi{resolution}_model-{model_entity}_desc-{video_num:04d}{suffix}.nii.gz"
 
 
 def build_figure_bids_png(sub, ses, resolution, desc):
-    return f"sub-{sub:03d}_ses-{ses:02d}_res-{resolution}_desc-{desc}.png"
+    return f"sub-{sub:03d}_ses-{ses:02d}_space-epi{resolution}_desc-{desc}.png"
 
 
 class GLMSingleAccess:
@@ -81,7 +90,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = None,
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
     ):
         """
         Get the nii directory path for a given subject, session and resolution.
@@ -90,7 +99,7 @@ class GLMSingleAccess:
             sub (int): Subject number.
             ses (int): Session number.
             glmtype (str): GLM type (kept for backward compat, unused in path).
-            resolution (str): Resolution, default is "2.0mm".
+            resolution (str): Resolution, default is "2p0mm".
 
         Returns:
             pathlib.Path: Directory path where BIDS-named nifti files are located.
@@ -99,7 +108,7 @@ class GLMSingleAccess:
             self.glmsingle_main_dir
             / f"sub-{sub:03d}"
             / f"ses-{ses:02d}"
-            / f"res-{resolution}"
+            / f"space-epi{resolution}"
         )
         return glm_type_dir
 
@@ -108,7 +117,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
     ):
         """
         Get the shape of the betas data.
@@ -138,7 +147,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
         zscore: bool = False,
     ):
         """
@@ -148,7 +157,7 @@ class GLMSingleAccess:
             sub (int): Subject number.
             ses (int): Session number.
             glmtype (str): GLM type.
-            resolution (str): Resolution, default is "2.0mm".
+            resolution (str): Resolution, default is "2p0mm".
 
         Returns:
             pathlib.Path: Path to the betas file.
@@ -163,7 +172,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
         zscore: bool = False,
     ):
         """
@@ -224,7 +233,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
     ):
         """
         Get the path to the mean volume file for a given subject and session.
@@ -246,7 +255,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
     ):
         """
         Load and return the mean volume data for a given subject and session.
@@ -275,7 +284,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
     ):
         """
         Get the path to the R2 file for a given subject and session.
@@ -297,7 +306,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
     ):
         """
         Load and return the R2 data for a given subject and session.
@@ -325,7 +334,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
         direction: str = "fw",
     ):
         """
@@ -349,7 +358,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
         direction: str = "fw",
     ):
         """
@@ -379,7 +388,7 @@ class GLMSingleAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
         threshold: float = 0.2,
     ):
         """
@@ -413,7 +422,7 @@ class GLMSingleAccess:
         video_num: int,
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
         zscore: bool = False,
     ):
         """
@@ -424,7 +433,7 @@ class GLMSingleAccess:
             video_num (int): Video number.
             direction (str): Video direction, default is "fw".
             glmtype (str): GLM type.
-            resolution (str): Resolution, default is "2.0mm".
+            resolution (str): Resolution, default is "2p0mm".
 
         Returns:
             pathlib.Path: Path to the betas file for the specified video.
@@ -432,7 +441,7 @@ class GLMSingleAccess:
         beta_dir = (
             self.video_betas_dir
             / f"sub-{sub:03d}"
-            / f"res-{resolution}"
+            / f"space-epi{resolution}"
             / direction
         )
         beta_file = beta_dir / build_per_video_bids_nii(sub, resolution, glmtype, video_num, zscore)
@@ -444,7 +453,7 @@ class GLMSingleAccess:
         video_num: int,
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "2.0mm",
+        resolution: str = "2p0mm",
         zscore: bool = False,
         average_repeat: bool = False,
     ):
@@ -456,7 +465,7 @@ class GLMSingleAccess:
             video_num (int): Video number.
             direction (str): Video direction, default is "fw".
             glmtype (str): GLM type.
-            resolution (str): Resolution, default is "2.0mm".
+            resolution (str): Resolution, default is "2p0mm".
 
         Returns:
             numpy.ndarray or None: Array containing the video betas data, or None if the file does not exist.
