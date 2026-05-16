@@ -24,16 +24,6 @@ MODEL_ENTITY_MAP = {
     "TYPED_FITHRF_GLMDENOISE_RR": "TYPED",
 }
 
-INPUT_RESOLUTION_MAP = {
-    "2p0mm": "2.0mm",
-    "1p25mm": "1.25mm",
-}
-
-
-def to_input_resolution(resolution: str) -> str:
-    return INPUT_RESOLUTION_MAP.get(resolution, resolution)
-
-
 def build_per_session_bids_nii(sub, ses, resolution, model, desc):
     model_entity = MODEL_ENTITY_MAP.get(model, model)
     return f"sub-{sub:03d}_ses-{ses:02d}_space-epi{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
@@ -204,7 +194,7 @@ class GLMSingleAccess:
             affine_source_path
             / f"sub-{sub:03d}"
             / "fiducial"
-            / "epi_2.0mm"
+            / "epi2p0mm"
             / f"sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
@@ -220,7 +210,7 @@ class GLMSingleAccess:
             affine_source_path
             / f"sub-{sub:03d}"
             / "fiducial"
-            / "epi_2.0mm"
+            / "epi2p0mm"
             / f"sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
