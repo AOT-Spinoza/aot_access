@@ -1,780 +1,168 @@
-import AOTaccess
+"""Access to fitted population-receptive-field (pRF) parameter maps.
+
+pRF fits live under ``<prf>/sub-XXX/prf_fits/params/`` as one NIfTI per fitted
+parameter. ``read_param`` loads any of them; a parameter is named by its
+on-disk suffix (see ``PRF_PARAMS``), so the name maps 1:1 to the filename.
+
+Two fit models produce volumetric parameter maps: ``gauss`` (a 2D Gaussian
+pRF) and ``norm`` (a divisive-normalization pRF, which exposes the extra
+surround/normalization parameters). ``params(model)`` lists what each provides.
+The ``dog`` model only writes a combined ``.tsv``, so it has no per-parameter
+maps and is not in the registry.
+"""
+
 from pathlib import Path
-import sys
-import os
 import yaml
 import nibabel as nib
 
+
+# on-disk parameter suffix -> set of fit models that produce that map
+PRF_PARAMS = {
+    "r2": {"gauss", "norm"},          # variance explained by the fit
+    "ecc": {"gauss", "norm"},         # eccentricity
+    "polar": {"gauss", "norm"},       # polar angle
+    "prf_size": {"gauss", "norm"},    # pRF size
+    "prf_ampl": {"gauss", "norm"},    # pRF amplitude
+    "bold_bsl": {"gauss", "norm"},    # BOLD baseline
+    "x": {"gauss", "norm"},           # pRF centre, x
+    "y": {"gauss", "norm"},           # pRF centre, y
+    "hrf_deriv": {"gauss"},           # HRF derivative param (gauss naming)
+    "hrf_dsip": {"gauss"},            # HRF dispersion param (gauss naming)
+    "hrf_delay": {"norm"},            # HRF first param (norm naming)
+    "hrf_disp": {"norm"},             # HRF dispersion param (norm naming)
+    "BDratio": {"norm"},              # normalization B/D ratio
+    "surr_ampl": {"norm"},            # surround amplitude
+    "surr_bsl": {"norm"},             # surround baseline
+    "surr_size": {"norm"},            # surround size
+    "neur_bsl": {"norm"},             # neural baseline
+}
+
+
 class PrfAccess:
     def __init__(self, root_dir: Path = None):
-        """
-        Initialize a GLMSingleAccess instance.
+        """Initialize a PrfAccess instance.
 
         Parameters:
-            stctype (str): Structure type, default is "nordicstc".
-
-        Returns:
-            None
+            root_dir (Path): If given, the pRF derivatives are ``root_dir / "prf"``.
+                Otherwise the path is read from settings.yml.
         """
         if root_dir is not None:
-            self.prf_main_dir = root_dir / "prf"
+            self.prf_main_dir = Path(root_dir) / "prf"
         else:
             basedir = Path(__file__).resolve().parent
             settings = yaml.safe_load(open(basedir / "settings.yml"))
             self.prf_main_dir = Path(settings["paths"]["prf"])
 
     def get_prf_dir_path(self):
-        """
-        Get the path to the main glmsingle directory.
-
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
+        """Return the root pRF derivatives directory."""
         return self.prf_main_dir
-    
 
-    def get_prf_noiseceiling_dir_path(
-        self,
-        sub:int,
-    ):
-        """
-        Get the path to the main glmsingle directory.
+    # ------------------------------------------------------------------
+    # discovery
+    # ------------------------------------------------------------------
+    @staticmethod
+    def params(model: str = None):
+        """List pRF parameter names.
 
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
+        With ``model`` given ('gauss' or 'norm'), returns only the parameters
+        that model produces; otherwise returns every known parameter.
         """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prep" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-nordicstc_run-noiseceiling_part-mag_bold_space-epi_1.7mm.nii.gz"
+        if model is None:
+            return sorted(PRF_PARAMS)
+        return sorted(p for p, models in PRF_PARAMS.items() if model in models)
 
-    def get_prf_fits_r2_path(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-       #/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/prf/sub-001/prf_fits/params/sub-001_ses-pRF_task-pRF_rec-nordicstc_run-firsthalf_model-gauss_stage-iter_space-epi_1.7mm_desc-prf_params_r2.nii.gz
-
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_r2.nii.gz"
-    
-    def get_prf_fits_eccentricity_path(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_ecc.nii.gz"
-    
-    def get_prf_fits_prfsize_path(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_prf_size.nii.gz"
-    
-    def get_prf_fits_polar_angle_path(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_polar.nii.gz"
-    
-    def get_prf_fits_x_position_path(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_x.nii.gz"
-    
-    def get_prf_fits_y_position_path(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_y.nii.gz"
-    
-    def get_prf_fits_prf_amplitude_path(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_prf_ampl.nii.gz"
-
-    def get_prf_fits_hrf_deriv_path(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_hrf_deriv.nii.gz"
-    
-    def get_prf_fits_hrf_dsip_path(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_hrf_dsip.nii.gz"
-    
-    def get_prf_fits_BDratio_path(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_BDratio.nii.gz"
-    
-    def get_prf_fits_bold_baseline_path(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_bold_bsl.nii.gz"
-    
-    def get_prf_fits_surround_amplitude_path(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_surr_ampl.nii.gz"
-    
-    def get_prf_fits_surround_baseline_path(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_surr_bsl.nii.gz"
-    
-    def get_prf_fits_surround_size_path(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_surr_size.nii.gz"
-    
-    def get_prf_fits_neuro_baseline_path(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-    ):
-        """
-        Get the path to the main glmsingle directory.
-        Parameters:
-            None
-        Returns:
-            pathlib.Path: The path to prf_main_dir.
-        """
-        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_neur_bsl.nii.gz"
-    
-    def read_R2(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the R2 data for a given subject and session.
+    # ------------------------------------------------------------------
+    # parameter maps
+    # ------------------------------------------------------------------
+    def param_path(self, sub: int, param: str, model: str = "gauss",
+                   resolution: str = "2.0mm", runpart: str = "all",
+                   rec: str = "nordicstc"):
+        """Path to a fitted pRF parameter map.
 
         Parameters:
             sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
+            param (str): Parameter name — one of :meth:`params` (the on-disk suffix).
+            model (str): Fit model, 'gauss' or 'norm'.
+            resolution (str): EPI resolution, e.g. '2.0mm'.
+            runpart (str): Which runs were fit — 'all', 'firsthalf', 'secondhalf'.
+            rec (str): Reconstruction type.
 
         Returns:
-            np.ndarray: The R2 data.
+            pathlib.Path: Path to the parameter map NIfTI.
         """
-        r2_path = self.get_prf_fits_r2_path(sub, model, resolution, runpart, rec)
-        r2_data = nib.load(r2_path).get_fdata()
-        # Note: R2 data is not masked as it's used as the mask source
-        return r2_data
-    
-    def read_eccentricity(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the eccentricity data for a given subject and session.
+        self._check(param, model)
+        fname = (
+            f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}"
+            f"_model-{model}_stage-iter_space-epi_{resolution}"
+            f"_desc-prf_params_{param}.nii.gz"
+        )
+        return self.prf_main_dir / f"sub-{sub:03d}" / "prf_fits" / "params" / fname
 
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
+    def read_param(self, sub: int, param: str, model: str = "gauss",
+                   resolution: str = "2.0mm", runpart: str = "all",
+                   rec: str = "nordicstc", mask: bool = False,
+                   mask_r2_threshold: float = 0.1):
+        """Read a fitted pRF parameter map as an ndarray.
+
+        With ``mask=True``, voxels whose R2 is below ``mask_r2_threshold`` are
+        zeroed (the R2 map itself is never masked).
 
         Returns:
-            np.ndarray: The eccentricity data.
+            numpy.ndarray: The parameter map.
         """
-        ecc_path = self.get_prf_fits_eccentricity_path(sub, model, resolution, runpart, rec)
-        ecc_data = nib.load(ecc_path).get_fdata()
+        path = self.param_path(sub, param, model, resolution, runpart, rec)
+        if not path.exists():
+            raise FileNotFoundError(
+                f"pRF parameter map not found: {path}\n"
+                f"(sub={sub}, param={param}, model={model}, "
+                f"resolution={resolution}, runpart={runpart}, rec={rec})"
+            )
+        data = nib.load(path).get_fdata()
+        if mask and param != "r2":
+            r2 = self.read_param(sub, "r2", model, resolution, runpart, rec)
+            data[r2 < mask_r2_threshold] = 0
+        return data
+
+    # ------------------------------------------------------------------
+    # noise ceiling
+    # ------------------------------------------------------------------
+    def noiseceiling_path(self, sub: int, resolution: str = "2.0mm",
+                          rec: str = "nordicstc"):
+        """Path to the pRF-session noise-ceiling map."""
+        fname = (
+            f"sub-{sub:03d}_ses-pRF_task-pRF_rec-{rec}_run-noiseceiling"
+            f"_part-mag_bold_space-epi_{resolution}.nii.gz"
+        )
+        return self.prf_main_dir / f"sub-{sub:03d}" / "prep" / fname
+
+    def read_noiseceiling(self, sub: int, resolution: str = "2.0mm",
+                          rec: str = "nordicstc", mask: bool = False,
+                          mask_r2_threshold: float = 0.1):
+        """Read the pRF-session noise-ceiling map as an ndarray.
+
+        With ``mask=True``, voxels below the gauss-model R2 threshold are zeroed.
+        """
+        path = self.noiseceiling_path(sub, resolution, rec)
+        if not path.exists():
+            raise FileNotFoundError(f"pRF noise-ceiling map not found: {path}")
+        data = nib.load(path).get_fdata()
         if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            ecc_data[r2_data < mask_r2_threshold] = 0
-        return ecc_data
-    
-    def read_prfsize(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the prfsize data for a given subject and session.
+            r2 = self.read_param(sub, "r2", "gauss", resolution)
+            data[r2 < mask_r2_threshold] = 0
+        return data
 
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The prfsize data.
-        """
-        prfsize_path = self.get_prf_fits_prfsize_path(sub, model, resolution, runpart, rec)
-        prfsize_data = nib.load(prfsize_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            prfsize_data[r2_data < mask_r2_threshold] = 0
-        return prfsize_data
-    
-    def read_polar_angle(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the polar angle data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The polar angle data.
-        """
-        polar_angle_path = self.get_prf_fits_polar_angle_path(sub, model, resolution, runpart, rec)
-        polar_angle_data = nib.load(polar_angle_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            polar_angle_data[r2_data < mask_r2_threshold] = 0
-        return polar_angle_data
-    
-    def read_x_position(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the x position data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The x position data.
-        """
-        x_position_path = self.get_prf_fits_x_position_path(sub, model, resolution, runpart, rec)
-        x_position_data = nib.load(x_position_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            x_position_data[r2_data < mask_r2_threshold] = 0
-        return x_position_data
-    
-    def read_y_position(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the y position data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The y position data.
-        """
-        y_position_path = self.get_prf_fits_y_position_path(sub, model, resolution, runpart, rec)
-        y_position_data = nib.load(y_position_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            y_position_data[r2_data < mask_r2_threshold] = 0
-        return y_position_data
-    
-    def read_prf_amplitude(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the amplitude data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The amplitude data.
-        """
-        amplitude_path = self.get_prf_fits_prf_amplitude_path(sub, model, resolution, runpart, rec)
-        amplitude_data = nib.load(amplitude_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            amplitude_data[r2_data < mask_r2_threshold] = 0
-        return amplitude_data
-    
-    def read_hrf_deriv(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the hrf deriv data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The hrf deriv data.
-        """
-        hrf_deriv_path = self.get_prf_fits_hrf_deriv_path(sub, model, resolution, runpart, rec)
-        hrf_deriv_data = nib.load(hrf_deriv_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            hrf_deriv_data[r2_data < mask_r2_threshold] = 0
-        return hrf_deriv_data
-    
-    def read_hrf_dsip(
-        self,
-        sub:int,
-        model:str="gauss",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the hrf dsip data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The hrf dsip data.
-        """
-        hrf_dsip_path = self.get_prf_fits_hrf_dsip_path(sub, model, resolution, runpart, rec)
-        hrf_dsip_data = nib.load(hrf_dsip_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            hrf_dsip_data[r2_data < mask_r2_threshold] = 0
-        return hrf_dsip_data
-    
-    def read_BDratio(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the BDratio data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The BDratio data.
-        """
-        bd_ratio_path = self.get_prf_fits_BDratio_path(sub, model, resolution, runpart, rec)
-        bd_ratio_data = nib.load(bd_ratio_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            bd_ratio_data[r2_data < mask_r2_threshold] = 0
-        return bd_ratio_data
-    
-    def read_bold_baseline(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the bold baseline data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The bold baseline data.
-        """
-        bold_baseline_path = self.get_prf_fits_bold_baseline_path(sub, model, resolution, runpart, rec)
-        bold_baseline_data = nib.load(bold_baseline_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            bold_baseline_data[r2_data < mask_r2_threshold] = 0
-        return bold_baseline_data
-    
-    def read_surround_amplitude(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the surround amplitude data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The surround amplitude data.
-        """
-        surround_amplitude_path = self.get_prf_fits_surround_amplitude_path(sub, model, resolution, runpart, rec)
-        surround_amplitude_data = nib.load(surround_amplitude_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            surround_amplitude_data[r2_data < mask_r2_threshold] = 0
-        return surround_amplitude_data
-    
-    def read_surround_baseline(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the surround baseline data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The surround baseline data.
-        """
-        surround_baseline_path = self.get_prf_fits_surround_baseline_path(sub, model, resolution, runpart, rec)
-        surround_baseline_data = nib.load(surround_baseline_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            surround_baseline_data[r2_data < mask_r2_threshold] = 0
-        return surround_baseline_data
-    
-    def read_surround_size(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the surround size data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The surround size data.
-        """
-        surround_size_path = self.get_prf_fits_surround_size_path(sub, model, resolution, runpart, rec)
-        surround_size_data = nib.load(surround_size_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            surround_size_data[r2_data < mask_r2_threshold] = 0
-        return surround_size_data
-    
-    def read_neuro_baseline(
-        self,
-        sub:int,
-        model:str="norm",
-        resolution:str="1.7mm",
-        runpart:str="firsthalf",
-        rec:str="nordicstc",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the neuro baseline data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The neuro baseline data.
-        """
-        neuro_baseline_path = self.get_prf_fits_neuro_baseline_path(sub, model, resolution, runpart, rec)
-        neuro_baseline_data = nib.load(neuro_baseline_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, model, resolution, runpart, rec)
-            neuro_baseline_data[r2_data < mask_r2_threshold] = 0
-        return neuro_baseline_data
-    
-    def read_noiseceiling(
-        self,
-        sub:int,
-        ses:int,
-        glmtype:str="TYPED_FITHRF_GLMDENOISE_RR",
-        resolution:str="1.7mm",
-        mask:bool=False,
-        mask_r2_threshold:float=0.1,
-    ):
-        """
-        Read the noise ceiling data for a given subject and session.
-
-        Parameters:
-            sub (int): Subject number.
-            ses (int): Session number.
-            glmtype (str): GLM type, default is "TYPED_FITHRF_GLMDENOISE_RR".
-
-        Returns:
-            np.ndarray: The noise ceiling data.
-        """
-        noiseceiling_path = self.get_prf_noiseceiling_dir_path(sub)
-        noiseceiling_data = nib.load(noiseceiling_path).get_fdata()
-        if mask:
-            r2_data = self.read_R2(sub, "gauss", resolution, "firsthalf", "nordicstc")
-            noiseceiling_data[r2_data < mask_r2_threshold] = 0
-        return noiseceiling_data
-    
-    
-    def get_method_list(self):
-        """
-        Get a list of available methods for accessing pRF data.
-
-        Returns:
-            list: List of method names.
-        """
-        return [
-            "read_R2",
-            "read_eccentricity",
-            "read_prfsize",
-            "read_polar_angle",
-            "read_x_position",
-            "read_y_position",
-            "read_prf_amplitude",
-            "read_hrf_deriv",
-            "read_hrf_dsip",
-            "read_BDratio",
-            "read_bold_baseline",
-            "read_surround_amplitude",
-            "read_surround_baseline",
-            "read_surround_size",
-            "read_neuro_baseline",
-        ]
-
-
+    # ------------------------------------------------------------------
+    # helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _check(param: str, model: str):
+        """Validate a (param, model) pair against the registry."""
+        if param not in PRF_PARAMS:
+            raise ValueError(
+                f"Unknown pRF parameter '{param}'. Available: {sorted(PRF_PARAMS)}"
+            )
+        if model not in PRF_PARAMS[param]:
+            raise ValueError(
+                f"pRF parameter '{param}' is not produced by model '{model}'. "
+                f"It is available for: {sorted(PRF_PARAMS[param])}"
+            )

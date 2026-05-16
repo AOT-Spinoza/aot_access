@@ -11,6 +11,7 @@ from AOTaccess.stimulus_info_access import StimuliInfoAccess
 from AOTaccess.bids_access import BidsAccess
 from AOTaccess.memoryscore_access import MemoryScoreAccess
 from AOTaccess.preproced_access import PreprocedAccess
+from AOTaccess.roi_access import ROIAccess
 
 
 class AOTAccess:
@@ -23,6 +24,7 @@ class AOTAccess:
         self.bids_access = BidsAccess(root_dir=root_path)
         self.memoryscore_access = MemoryScoreAccess(root_dir=root_path)
         self.preproced_access = PreprocedAccess(root_dir=root_path)
+        self.roi_access = ROIAccess(root_dir=root_path)
 
         self.root_path = root_path
         """
@@ -48,7 +50,7 @@ class AOTAccess:
         header = self.glmsingle_access.read_header(sub)
         return affine, header
 
-    def read_meanvol_from_session(self, sub: int, ses: int, resolution: str = "1p7mm"):
+    def read_meanvol_from_session(self, sub: int, ses: int, resolution: str = "2p0mm"):
         """
         Read mean volume data for a session.
         """
@@ -61,7 +63,7 @@ class AOTAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1p7mm",
+        resolution: str = "2p0mm",
     ):
         """
         Read beta values for a session.
@@ -76,7 +78,7 @@ class AOTAccess:
         video: int,
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1p7mm",
+        resolution: str = "2p0mm",
     ):
         """
         Read beta values for a specific video.
@@ -94,7 +96,7 @@ class AOTAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1p7mm",
+        resolution: str = "2p0mm",
     ):
         """
         Read R2 values for a session.
@@ -109,7 +111,7 @@ class AOTAccess:
         ses: int,
         threshold: float = 0.2,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1p7mm",
+        resolution: str = "2p0mm",
     ):
         """
         Read R2 mask for a session with given threshold.
@@ -135,7 +137,7 @@ class AOTAccess:
         return self.expdesign_access.get_session_id_from_video_id(sub, video)
 
     def read_preproced_bold_from_session(
-        self, sub: int, ses: int, run: int, resolution: str = "1p7mm"
+        self, sub: int, ses: int, run: int, resolution: str = "2p0mm"
     ):
         """
         Read preprocessed BOLD data for a session.
@@ -143,3 +145,64 @@ class AOTAccess:
         return self.preproced_access.read_func(
             sub=sub, ses=ses, run=run, resolution=resolution
         )
+
+    def read_roi_mask(
+        self,
+        sub: int,
+        roi: str,
+        atlas: str = "wang_2015",
+        resolution: str = "2p0mm",
+        cons: str = "balanced",
+        hemi: str = None,
+    ):
+        """
+        Read a boolean ROI mask on the EPI grid.
+
+        The mask comes from the ROI library's fsnative volume space, which is
+        the same voxel grid as the GLMsingle betas and preprocessed BOLD at the
+        matching resolution, so it indexes those arrays directly.
+        """
+        return self.roi_access.read_mask(
+            sub=sub,
+            roi=roi,
+            atlas=atlas,
+            space="fsnative",
+            res=resolution,
+            cons=cons,
+            hemi=hemi,
+        )
+
+    def extract_betas_in_roi(
+        self,
+        sub: int,
+        ses: int,
+        roi: str,
+        atlas: str = "wang_2015",
+        cons: str = "balanced",
+        hemi: str = None,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "2p0mm",
+    ):
+        """
+        Read per-session GLMsingle betas restricted to an ROI.
+
+        Returns an (n_voxels, n_trials) array: the ROI mask applied to the
+        session betas volume. The ROI mask (fsnative volume) and the betas
+        share the EPI voxel grid at the same resolution.
+        """
+        betas = self.glmsingle_access.read_betas(
+            sub=sub, ses=ses, glmtype=glmtype, resolution=resolution
+        )
+        if betas is None:
+            raise FileNotFoundError(
+                f"No GLMsingle betas for sub={sub} ses={ses} "
+                f"(glmtype={glmtype}, resolution={resolution})."
+            )
+        mask = self.read_roi_mask(sub, roi, atlas, resolution, cons, hemi)
+        if mask.shape != betas.shape[:3]:
+            raise ValueError(
+                f"ROI mask shape {mask.shape} does not match the betas grid "
+                f"{betas.shape[:3]} — check that resolution='{resolution}' "
+                f"matches between the ROI and GLMsingle outputs."
+            )
+        return betas[mask]

@@ -7,7 +7,8 @@ import numpy as np
 import h5py
 import csv
 import json
-import torch
+# NOTE: `torch` is imported lazily inside the `_temp_*` methods that need it,
+# so the rest of the API stays importable without that heavy dependency.
 
 
 class StimuliInfoAccess:
@@ -338,6 +339,8 @@ class StimuliInfoAccess:
         return np.load(filepath)
 
     def _temp_load_vae_latent(self, latent_file: Path, kind: str = "VAE"):
+        import torch
+
         if not latent_file.exists():
             raise FileNotFoundError(f"{kind} latent file not found: {latent_file}")
 
@@ -467,6 +470,8 @@ class StimuliInfoAccess:
         )
 
     def _temp_load_hunyuan_text_encoder_artifacts(self, artifact_file: Path):
+        import torch
+
         if not artifact_file.exists():
             raise FileNotFoundError(
                 f"Hunyuan text encoder artifact file not found: {artifact_file}"
@@ -485,6 +490,8 @@ class StimuliInfoAccess:
         return payload
 
     def _temp_extract_hunyuan_prompt_embeds(self, payload: dict, encoder_key: str, artifact_file: Path):
+        import torch
+
         pipeline_inputs = payload.get("pipeline_inputs")
         if not isinstance(pipeline_inputs, dict):
             raise KeyError(

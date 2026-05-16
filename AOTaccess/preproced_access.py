@@ -31,7 +31,7 @@ class PreprocedAccess:
         ses: int,
         run: int,
         task: str = "AOT",
-        resolution: str = "1p7mm",
+        resolution: str = "2p0mm",
     ):
         """
         Read the preprocessed functional image for a specific subject, session, task, and run.
@@ -46,7 +46,7 @@ class PreprocedAccess:
             nibabel.nifti1.Nifti1Image: The preprocessed functional image.
         """
 
-        # temp file : derivatives/aot_prep/sub-001/ses-01/func/sub-001_ses-01_task-AOT_rec-nordicstc_run-01_part-mag_bold_space-epi1p7mm.nii.gz
+        # temp file : derivatives/aot_prep/sub-001/ses-01/func/sub-001_ses-01_task-AOT_rec-nordicstc_run-01_part-mag_bold_space-epi2p0mm.nii.gz
         sub = str(sub).zfill(3)
         ses = str(ses).zfill(2)
         run = str(run).zfill(2)
