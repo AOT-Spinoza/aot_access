@@ -10,7 +10,6 @@ paths:
   # sbert_embeddings: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
   # llama_descriptions: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean"
   # motion_energy: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
-  prf: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/prf"
   roi: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/roi"
   localizers: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/localizers"
 

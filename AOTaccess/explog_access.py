@@ -1,35 +1,18 @@
-import AOTaccess
-from pathlib import Path
-import sys
-import os
-import yaml
-import bids
 import csv
 
-from hedfpy.HDFEyeOperator import HDFEyeOperator
-
-
-basedir = Path(__file__).resolve().parent
-settings = yaml.safe_load(open(basedir / "settings.yml"))
+from AOTaccess.config import Config
 
 
 class ExpLogAccess:
-    def __init__(self, root_dir: Path = None):
-        """
-        Initialize the ExpLogAccess instance.
-
-        Sets up the bids directory from the settings.
+    def __init__(self, root_dir=None, config=None):
+        """Initialize the ExpLogAccess instance.
 
         Parameters:
-            None
-
-        Returns:
-            None
+            root_dir: If given, resolve paths relative to this dataset root.
+            config (Config): An explicit Config; takes precedence over root_dir.
         """
-        if root_dir is not None:
-            self.bids_dir = root_dir / "bids"
-        else:
-            self.bids_dir = Path(settings["paths"]["bids"])
+        self.config = config if config is not None else Config(root_dir=root_dir)
+        self.bids_dir = self.config.path("bids")
 
     def get_func_dir(self, sub: int, ses: int):
         """

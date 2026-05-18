@@ -13,25 +13,25 @@ here — it is purely an accessor layer over derivatives produced elsewhere.
 ## Setup, lint, test
 
 ```bash
-pip install -e ".[dev]"      # editable install + black/flake8/pytest
-black AOTaccess/             # formatter (the project's style)
-flake8 AOTaccess/            # linter
+pip install -e ".[dev]"            # editable install + black/flake8/pytest
+black AOTaccess/ tests/            # formatter (the project's style)
+flake8 AOTaccess/ tests/           # linter
+pytest                             # run the test suite
+pytest -m "not cluster"            # only tests that need no real data
+pytest tests/test_config.py        # a single test file
 ```
 
-There is **no pytest suite** despite `pytest` being a declared dev dependency. The
-`AOTaccess/notebooks/test_*.ipynb` notebooks are the de-facto tests — one per access class.
-To "run a test", open the relevant `test_<module>_access.ipynb` and execute it; it exercises
-that class against real data on the cluster. `all_function_usage_display.ipynb` is a usage
-reference. Note these notebooks import modules directly (`sys.path.append('..')` then
-`from glmsingle_access import GLMSingleAccess`), not through the installed package.
+`tests/` holds the pytest suite. Tests marked `@pytest.mark.cluster` read the real AOT
+dataset and are auto-skipped when it is unreachable (`tests/conftest.py`); the rest run
+anywhere against synthetic fixtures. The `AOTaccess/notebooks/test_*.ipynb` notebooks
+predate the suite — exploratory usage references, not maintained tests.
 
-Two runtime dependencies are used but **not declared** in `pyproject.toml`: `torch`
-(`stimulus_info_access.py`, imported lazily inside the `_temp_*` methods that need it) and
-`hedfpy` (`explog_access.py`, currently commented out).
+`torch` is an optional dependency, imported lazily inside the `_temp_*` methods of
+`stimulus_info_access.py` so the rest of the API loads without it.
 
 ## Architecture
 
-- `aot_access.py` — `AOTAccess(root_path)` is the facade. It instantiates and delegates to
+- `aot_access.py` — `AOTAccess(root_path=None)` is the facade. It instantiates and delegates to
   the per-domain access classes. It wires up **7 of the 11** access classes:
   `GLMSingleAccess`, `ExpDesignAccess`, `StimuliInfoAccess`, `BidsAccess`, `MemoryScoreAccess`,
   `PreprocedAccess`, `ROIAccess`. `PrfAccess`, `LocalizerAccess`, `ExpLogAccess`, and
@@ -65,39 +65,33 @@ under `derivatives/localizers/<name>/`. `LocalizerAccess` (`localizer_access.py`
 manifest-driven exactly like `ROIAccess`: each localizer carries its own `manifest.yaml`
 (localizers are diverse — manifests are kept separate) declaring subjects, result maps,
 defaults, and `path_templates`. `read_map(localizer, sub, map, **params)` resolves any of
-them. `schemas/localizer-manifest.example.yaml` is the worked pRF example / schema spec.
+them. `schemas/localizer-manifest.example.yaml` documents the manifest schema.
 
-**Transition state:** the pRF data still lives at `derivatives/prf/` and `prf_access.py`
-(`PrfAccess`) reads it there. It will move to `derivatives/localizers/pRF/`; after the move
-`PrfAccess` is superseded by `LocalizerAccess` and can be retired. `LocalizerAccess` already
-targets the post-move layout — it will not resolve real files until the move happens.
+pRF is the first localizer: it lives at `derivatives/localizers/prf/` with a `manifest.yaml`.
+`prf_access.py` (`PrfAccess`) is now a thin pRF-specific convenience wrapper over
+`LocalizerAccess` — `read_param` / `read_noiseceiling` with optional R2 masking. New code can
+use `LocalizerAccess` directly with `localizer="prf"`.
 
-Note: `GLMSingleAccess`/`PreprocedAccess` format sessions as `ses-{ses:02d}`, which breaks
-on string sessions like `ses-fLOC`. They need string-session support before localizer betas
-can be read through them (`BidsAccess` already branches on `type(ses) is int`).
+### Configuration and path resolution
 
-### Path resolution — two modes
+`config.py` centralises path resolution. A `Config` resolves every derivative store either
+from `AOTaccess/settings.yml` (the default — absolute cluster paths) or, when built with
+`root_dir=<dataset root>`, relative to that root via the canonical `_RELATIVE_LAYOUT`.
+`settings.yml` can be overridden with the `AOT_SETTINGS` env var or an explicit
+`settings_path`.
 
-Every access class constructor takes `root_dir: Path = None` and branches on it:
-
-- `root_dir=None` → reads absolute cluster paths from `AOTaccess/settings.yml`
-  (`/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/...`).
-- `root_dir=<Path>` → builds all paths as subdirectories of that root (e.g.
-  `root_dir / "per_session"`, `root_dir / "bids"`).
-
-`settings.yml` is the single source of truth for default paths and `run_number` (10 runs per
-session). When data moves on the cluster, edit `settings.yml`, not the modules.
-`BidsAccess.__init__` keeps a legacy first positional arg `bids_dir` (kept for backward
-compatibility) before `root_dir`; both default to `None` and fall back to `settings.yml`.
+Every access class takes `(root_dir=None, config=None)` and holds a `Config`; the facade
+builds one `Config` and shares it with all sub-accessors. Add a derivative by editing
+`settings.yml` (and `_RELATIVE_LAYOUT`), not each module. `run_number` (10 runs/session)
+lives in the settings `parameters` section, read via `Config.param`.
 
 ### Dual-cluster fallback
 
 Code runs on two clusters with different mount points: VU
 (`/research/FGB-CognitivePsychology-Knapen/...`) and Snellius (`/projects/prjs1914/...`).
-`_resolve_anatomy_root()` (defined separately, with *different* candidate lists, in both
-`anatomy_access.py` and `glmsingle_access.py`) and many `_temp_*` methods probe a list of
-candidate paths and pick the first that `.exists()`. When adding cross-cluster file access,
-follow this "try each candidate, pick first existing" pattern.
+`Config.anatomy_root()` probes a list of candidate anatomy roots and returns the first that
+`.exists()`; many `_temp_*` methods do the same inline. When adding cross-cluster file
+access, follow this "try each candidate, pick first existing" pattern.
 
 ### `_temp_*` methods
 
@@ -120,14 +114,14 @@ filenames. Any change to the on-disk naming scheme goes through these helpers.
   default everywhere is `2p0mm`. The string is encoded `2p0mm` in `glmsingle_access.py`,
   `preproced_access.py`, and `roi_access.py`, but `2.0mm` (literal dot) in `prf_access.py` —
   match the convention of the module you are editing. Do not reintroduce `1p7mm`/`1.7mm`.
-- Identifiers are integers and get zero-padded into filenames: `sub-{sub:03d}`,
-  `ses-{ses:02d}`, `run-{run:02d}`, video `{video_id:04d}`. Several methods also accept a
-  string `ses` (e.g. `"3Tanat"`, `"pRF"`) and branch on `type(ses) is int`.
-- `read_*` methods that load a volume return `None` (not raise) when the file is missing —
-  except `read_shape`/`read_R2_mask`, which raise `FileNotFoundError`. Callers must
-  null-check.
+- Identifier formatting lives in `naming.py` (`fmt_sub`/`fmt_ses`/`fmt_run`/`fmt_video`).
+  Subjects/runs/videos zero-pad; `fmt_ses` zero-pads integer sessions but passes string
+  sessions (`pRF`, `fLOC`) through unchanged — use these helpers, never inline `f"{ses:02d}"`.
+- `read_*` methods raise `DataNotFoundError` with the resolved path when a file is missing —
+  they do not return `None`. `DataNotFoundError` subclasses both `AOTAccessError` (the base
+  for every API error, in `errors.py`) and the builtin `FileNotFoundError`.
 - `direction` is `"fw"` (forward) or `"rv"` (reversed) — the arrow-of-time manipulation.
 - Some methods are unimplemented stubs that `pass`: `ExpDesignAccess.get_session_id_from_video_id`
   (also missing `self`, yet called by `AOTAccess.read_session_from_video`),
-  `MemoryScoreAccess.memorability_list_from_all_sessions`, `read_memory_edf`,
+  `MemoryScoreAccess.memorability_list_from_all_sessions`/`read_memory_edf`, and
   `ExpLogAccess.get_eyetrack_edf`. Treat these as not-yet-working.

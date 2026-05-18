@@ -34,8 +34,6 @@ dependencies = [
     "nibabel",
     "scipy",
     "pyyaml",
-    "pathlib",
-    "pybids",
 ]
 
 
@@ -44,4 +42,7 @@ dev = ["pytest", "black", "flake8"]
 
 [tool.setuptools]
 packages = ["AOTaccess"]
-package-data = { AOTaccess = ['temp/*.ipynb'] }
+package-data = { AOTaccess = ['settings.yml', 'temp/*.ipynb'] }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

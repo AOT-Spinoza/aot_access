@@ -1,20 +1,20 @@
-from pathlib import Path
 import csv
-import yaml
 import nibabel as nib
 import json
 
+from AOTaccess.config import Config
+
 
 class BidsAccess:
-    def __init__(self, bids_dir: Path = None, root_dir: Path = None):
-        if root_dir is not None:
-            self.bids_dir = Path(root_dir) / "bids"
-        elif bids_dir is not None:
-            self.bids_dir = bids_dir
-        else:
-            basedir = Path(__file__).resolve().parent
-            settings = yaml.safe_load(open(basedir / "settings.yml"))
-            self.bids_dir = Path(settings["paths"]["bids"])
+    def __init__(self, root_dir=None, config=None):
+        """Initialize a BidsAccess instance.
+
+        Parameters:
+            root_dir: If given, resolve paths relative to this dataset root.
+            config (Config): An explicit Config; takes precedence over root_dir.
+        """
+        self.config = config if config is not None else Config(root_dir=root_dir)
+        self.bids_dir = self.config.path("bids")
 
     def get_func_dir(self, sub: int, ses):
         if type(ses) is int:

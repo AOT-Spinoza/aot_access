@@ -11,10 +11,12 @@ resolution indexes a betas/BOLD array directly (see ``extract_betas_in_roi``
 on ``AOTAccess``).
 """
 
-from pathlib import Path
 import yaml
 import numpy as np
 import nibabel as nib
+
+from AOTaccess.config import Config
+from AOTaccess.errors import DataNotFoundError
 
 
 # Public space name -> the prefix used in MANIFEST.yaml path-template keys.
@@ -27,19 +29,15 @@ _SPACE_ALIASES = {
 
 
 class ROIAccess:
-    def __init__(self, root_dir: Path = None):
+    def __init__(self, root_dir=None, config=None):
         """Initialize a ROIAccess instance.
 
         Parameters:
-            root_dir (Path): If given, the ROI library is ``root_dir / "roi"``.
-                Otherwise the path is read from settings.yml.
+            root_dir: If given, resolve paths relative to this dataset root.
+            config (Config): An explicit Config; takes precedence over root_dir.
         """
-        if root_dir is not None:
-            self.roi_dir = Path(root_dir) / "roi"
-        else:
-            basedir = Path(__file__).resolve().parent
-            settings = yaml.safe_load(open(basedir / "settings.yml"))
-            self.roi_dir = Path(settings["paths"]["roi"])
+        self.config = config if config is not None else Config(root_dir=root_dir)
+        self.roi_dir = self.config.path("roi")
         self.manifest_path = self.roi_dir / "MANIFEST.yaml"
         self._manifest = None
 
@@ -51,7 +49,7 @@ class ROIAccess:
         """The parsed MANIFEST.yaml (lazy-loaded and cached)."""
         if self._manifest is None:
             if not self.manifest_path.exists():
-                raise FileNotFoundError(
+                raise DataNotFoundError(
                     f"ROI manifest not found: {self.manifest_path}"
                 )
             with open(self.manifest_path) as f:
@@ -182,7 +180,7 @@ class ROIAccess:
         """
         path = self.mask_path(sub, roi, atlas, space, res, cons, hemi)
         if not path.exists():
-            raise FileNotFoundError(
+            raise DataNotFoundError(
                 f"ROI mask not found: {path}\n"
                 f"(sub={sub}, roi={roi}, atlas={atlas}, space={space}, "
                 f"res={res}, cons={cons}, hemi={hemi})"
@@ -207,7 +205,7 @@ class ROIAccess:
         """Load an atlas discrete segmentation as an integer ndarray."""
         path = self.dseg_path(sub, atlas, space, res, cons, hemi)
         if not path.exists():
-            raise FileNotFoundError(f"ROI dseg not found: {path}")
+            raise DataNotFoundError(f"ROI dseg not found: {path}")
         return np.asarray(nib.load(path).get_fdata()).astype(int)
 
     # ------------------------------------------------------------------
@@ -230,7 +228,7 @@ class ROIAccess:
         """Load a per-ROI surface label as a per-vertex ndarray."""
         path = self.surface_label_path(sub, roi, hemi, atlas, space)
         if not path.exists():
-            raise FileNotFoundError(f"ROI surface label not found: {path}")
+            raise DataNotFoundError(f"ROI surface label not found: {path}")
         return nib.load(path).agg_data()
 
     # ------------------------------------------------------------------
@@ -247,5 +245,5 @@ class ROIAccess:
         """Load a group probabilistic segmentation (MNI) as a float ndarray."""
         path = self.group_probseg_path(roi, hemi, atlas, res, cons)
         if not path.exists():
-            raise FileNotFoundError(f"Group probseg not found: {path}")
+            raise DataNotFoundError(f"Group probseg not found: {path}")
         return np.asarray(nib.load(path).get_fdata())

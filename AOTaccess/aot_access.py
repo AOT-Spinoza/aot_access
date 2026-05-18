@@ -1,10 +1,4 @@
-import AOTaccess
-from pathlib import Path
-import sys
-import os
-import yaml
-import nibabel as nib
-
+from AOTaccess.config import Config
 from AOTaccess.glmsingle_access import GLMSingleAccess
 from AOTaccess.expdesign_access import ExpDesignAccess
 from AOTaccess.stimulus_info_access import StimuliInfoAccess
@@ -15,32 +9,29 @@ from AOTaccess.roi_access import ROIAccess
 
 
 class AOTAccess:
-    def __init__(self, root_path):
-        self.basedir = Path(__file__).resolve().parent
-        self.settings = yaml.safe_load(open(self.basedir / "settings.yml"))
-        self.glmsingle_access = GLMSingleAccess(root_dir=root_path)
-        self.expdesign_access = ExpDesignAccess(root_dir=root_path)
-        self.stimuli_info_access = StimuliInfoAccess(root_dir=root_path)
-        self.bids_access = BidsAccess(root_dir=root_path)
-        self.memoryscore_access = MemoryScoreAccess(root_dir=root_path)
-        self.preproced_access = PreprocedAccess(root_dir=root_path)
-        self.roi_access = ROIAccess(root_dir=root_path)
+    """Facade over the per-domain access classes.
 
+    All sub-accessors share one Config, so a single ``root_dir`` (or the
+    default settings.yml) configures the whole API.
+    """
+
+    def __init__(self, root_path=None, config=None):
+        """Initialize the facade.
+
+        Parameters:
+            root_path: If given, resolve every store relative to this dataset
+                root. Otherwise paths come from settings.yml.
+            config (Config): An explicit Config; takes precedence over root_path.
+        """
+        self.config = config if config is not None else Config(root_dir=root_path)
+        self.glmsingle_access = GLMSingleAccess(config=self.config)
+        self.expdesign_access = ExpDesignAccess(config=self.config)
+        self.stimuli_info_access = StimuliInfoAccess(config=self.config)
+        self.bids_access = BidsAccess(config=self.config)
+        self.memoryscore_access = MemoryScoreAccess(config=self.config)
+        self.preproced_access = PreprocedAccess(config=self.config)
+        self.roi_access = ROIAccess(config=self.config)
         self.root_path = root_path
-        """
-        data dir structure:
-
-        Root path
-            Fw rv video betas folder
-            Glmginle output raw folder
-            Preproced folder
-            Bids folder
-            expdesign folder
-            Raw data folder
-            video folder
-            video annotations folder
-
-        """
 
     def read_affine_header(self, sub: int):
         """
@@ -193,11 +184,6 @@ class AOTAccess:
         betas = self.glmsingle_access.read_betas(
             sub=sub, ses=ses, glmtype=glmtype, resolution=resolution
         )
-        if betas is None:
-            raise FileNotFoundError(
-                f"No GLMsingle betas for sub={sub} ses={ses} "
-                f"(glmtype={glmtype}, resolution={resolution})."
-            )
         mask = self.read_roi_mask(sub, roi, atlas, resolution, cons, hemi)
         if mask.shape != betas.shape[:3]:
             raise ValueError(

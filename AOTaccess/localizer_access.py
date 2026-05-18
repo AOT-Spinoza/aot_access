@@ -14,26 +14,24 @@ here, so a new localizer is added by dropping its folder + manifest, with no
 code change. See ``schemas/localizer-manifest.example.yaml`` for the structure.
 """
 
-from pathlib import Path
 import yaml
 import numpy as np
 import nibabel as nib
 
+from AOTaccess.config import Config
+from AOTaccess.errors import DataNotFoundError
+
 
 class LocalizerAccess:
-    def __init__(self, root_dir: Path = None):
+    def __init__(self, root_dir=None, config=None):
         """Initialize a LocalizerAccess instance.
 
         Parameters:
-            root_dir (Path): If given, the store is ``root_dir / "localizers"``.
-                Otherwise the path is read from settings.yml.
+            root_dir: If given, resolve paths relative to this dataset root.
+            config (Config): An explicit Config; takes precedence over root_dir.
         """
-        if root_dir is not None:
-            self.localizers_dir = Path(root_dir) / "localizers"
-        else:
-            basedir = Path(__file__).resolve().parent
-            settings = yaml.safe_load(open(basedir / "settings.yml"))
-            self.localizers_dir = Path(settings["paths"]["localizers"])
+        self.config = config if config is not None else Config(root_dir=root_dir)
+        self.localizers_dir = self.config.path("localizers")
         self._manifests = {}
 
     # ------------------------------------------------------------------
@@ -48,7 +46,7 @@ class LocalizerAccess:
         if localizer not in self._manifests:
             path = self.manifest_path(localizer)
             if not path.exists():
-                raise FileNotFoundError(
+                raise DataNotFoundError(
                     f"Localizer manifest not found: {path}. "
                     f"Known localizers: {self.localizers()}"
                 )
@@ -182,7 +180,7 @@ class LocalizerAccess:
         """Read a localizer result map as an ndarray."""
         path = self.map_path(localizer, sub, map, **params)
         if not path.exists():
-            raise FileNotFoundError(
+            raise DataNotFoundError(
                 f"Localizer map not found: {path}\n"
                 f"(localizer={localizer}, sub={sub}, map={map}, params={params})"
             )

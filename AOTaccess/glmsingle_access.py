@@ -1,20 +1,8 @@
-import AOTaccess
-from pathlib import Path
-import sys
-import os
-import yaml
 import nibabel as nib
 
-
-def _resolve_anatomy_root():
-    candidates = [
-        Path("/projects/prjs1914/derivatives/anat-3T"),
-        Path("/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/anat-3T"),
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return candidates[0]
+from AOTaccess.config import Config
+from AOTaccess.errors import DataNotFoundError
+from AOTaccess.naming import fmt_sub, fmt_ses, fmt_video
 
 
 MODEL_ENTITY_MAP = {
@@ -26,41 +14,32 @@ MODEL_ENTITY_MAP = {
 
 def build_per_session_bids_nii(sub, ses, resolution, model, desc):
     model_entity = MODEL_ENTITY_MAP.get(model, model)
-    return f"sub-{sub:03d}_ses-{ses:02d}_space-epi{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
+    return f"sub-{fmt_sub(sub)}_ses-{fmt_ses(ses)}_space-epi{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
 
 
 def build_per_video_bids_nii(sub, resolution, model, video_num, zscore=True):
     model_entity = MODEL_ENTITY_MAP.get(model, model)
     suffix = "betaszscore" if zscore else "betas"
-    return f"sub-{sub:03d}_space-epi{resolution}_model-{model_entity}_desc-{video_num:04d}{suffix}.nii.gz"
+    return f"sub-{fmt_sub(sub)}_space-epi{resolution}_model-{model_entity}_desc-{fmt_video(video_num)}{suffix}.nii.gz"
 
 
 def build_figure_bids_png(sub, ses, resolution, desc):
-    return f"sub-{sub:03d}_ses-{ses:02d}_space-epi{resolution}_desc-{desc}.png"
+    return f"sub-{fmt_sub(sub)}_ses-{fmt_ses(ses)}_space-epi{resolution}_desc-{desc}.png"
 
 
 class GLMSingleAccess:
-    def __init__(self, stctype="nordicstc", root_dir: Path = None):
-        """
-        Initialize a GLMSingleAccess instance.
+    def __init__(self, stctype="nordicstc", root_dir=None, config=None):
+        """Initialize a GLMSingleAccess instance.
 
         Parameters:
-            stctype (str): Structure type, default is "nordicstc".
-
-        Returns:
-            None
+            stctype (str): Slice-timing-correction type, default "nordicstc".
+            root_dir: If given, resolve paths relative to this dataset root.
+            config (Config): An explicit Config; takes precedence over root_dir.
         """
-        if root_dir is not None:
-            self.glmsingle_main_dir = root_dir / "per_session"
-            self.video_betas_dir = root_dir / "per_video"
-        else:
-            basedir = Path(__file__).resolve().parent
-            settings = yaml.safe_load(open(basedir / "settings.yml"))
-            self.glmsingle_main_dir = (
-                Path(settings["paths"]["glmsingle"]) / "per_session"
-            )
-
-            self.video_betas_dir = Path(settings["paths"]["glmsingle"]) / "per_video"
+        self.config = config if config is not None else Config(root_dir=root_dir)
+        glmsingle_dir = self.config.path("glmsingle")
+        self.glmsingle_main_dir = glmsingle_dir / "per_session"
+        self.video_betas_dir = glmsingle_dir / "per_video"
         self.stctype = stctype
 
     def get_glm_dir_path(self):
@@ -96,8 +75,8 @@ class GLMSingleAccess:
         """
         glm_type_dir = (
             self.glmsingle_main_dir
-            / f"sub-{sub:03d}"
-            / f"ses-{ses:02d}"
+            / f"sub-{fmt_sub(sub)}"
+            / f"ses-{fmt_ses(ses)}"
             / f"space-epi{resolution}"
         )
         return glm_type_dir
@@ -177,25 +156,23 @@ class GLMSingleAccess:
             numpy.ndarray: Array containing the loaded betas data.
         """
         betas_file = self.get_session_betas_path(sub, ses, glmtype, resolution, zscore)
-        if not os.path.exists(betas_file):
-            # print(f"File {betas_file} does not exist")
-            return None
-        else:
-            betas = nib.load(betas_file).get_fdata()
-            # print(f"Loaded betas from {betas_file}")
-            # print(f"Shape of betas: {betas.shape}")
-            return betas
+        if not betas_file.exists():
+            raise DataNotFoundError(
+                f"GLMsingle session betas not found: {betas_file} "
+                f"(sub={sub}, ses={ses}, glmtype={glmtype}, resolution={resolution})"
+            )
+        return nib.load(betas_file).get_fdata()
 
     def read_affine(
         self, sub: int
     ):  # for new data each sunject shouold have a single affine matrix for all sessions
-        affine_source_path = _resolve_anatomy_root()
+        affine_source_path = self.config.anatomy_root()
         affine_matrix_path = (
             affine_source_path
-            / f"sub-{sub:03d}"
+            / f"sub-{fmt_sub(sub)}"
             / "fiducial"
             / "epi2p0mm"
-            / f"sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+            / f"sub-{fmt_sub(sub)}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
         # print("affine matrix source path:", affine_matrix_path)
@@ -205,13 +182,13 @@ class GLMSingleAccess:
     def read_header(
         self, sub: int
     ):  # for new data each sunject shouold have a single affine matrix for all sessions
-        affine_source_path = _resolve_anatomy_root()
+        affine_source_path = self.config.anatomy_root()
         affine_matrix_path = (
             affine_source_path
-            / f"sub-{sub:03d}"
+            / f"sub-{fmt_sub(sub)}"
             / "fiducial"
             / "epi2p0mm"
-            / f"sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+            / f"sub-{fmt_sub(sub)}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
         # print("affine matrix source path:", affine_matrix_path)
@@ -260,14 +237,12 @@ class GLMSingleAccess:
         """
 
         meanvol_file = self.get_meanvol_path(sub, ses, glmtype, resolution)
-        if not os.path.exists(meanvol_file):
-            # print(f"File {meanvol_file} does not exist")
-            return None
-        else:
-            meanvol = nib.load(meanvol_file).get_fdata()
-            # print(f"Loaded meanvol from {meanvol_file}")
-            # print(f"Shape of meanvol: {meanvol.shape}")
-            return meanvol
+        if not meanvol_file.exists():
+            raise DataNotFoundError(
+                f"GLMsingle mean volume not found: {meanvol_file} "
+                f"(sub={sub}, ses={ses}, glmtype={glmtype}, resolution={resolution})"
+            )
+        return nib.load(meanvol_file).get_fdata()
         
     def get_R2_path(
         self,
@@ -310,14 +285,12 @@ class GLMSingleAccess:
             numpy.ndarray: Array containing the loaded R2 data.
         """
         R2_file = self.get_R2_path(sub, ses, glmtype, resolution)
-        if not os.path.exists(R2_file):
-            # print(f"File {R2_file} does not exist")
-            return None
-        else:
-            R2 = nib.load(R2_file).get_fdata()
-            # print(f"Loaded R2 from {R2_file}")
-            # print(f"Shape of R2: {R2.shape}")
-            return R2
+        if not R2_file.exists():
+            raise DataNotFoundError(
+                f"GLMsingle R2 map not found: {R2_file} "
+                f"(sub={sub}, ses={ses}, glmtype={glmtype}, resolution={resolution})"
+            )
+        return nib.load(R2_file).get_fdata()
         
     def get_noiseceiling_path(
         self,
@@ -364,14 +337,12 @@ class GLMSingleAccess:
             numpy.ndarray: Array containing the loaded noise ceiling data.
         """
         nc_file = self.get_noiseceiling_path(sub, ses, glmtype, resolution, direction)
-        if not os.path.exists(nc_file):
-            # print(f"File {nc_file} does not exist")
-            return None
-        else:
-            nc = nib.load(nc_file).get_fdata()
-            # print(f"Loaded noise ceiling from {nc_file}")
-            # print(f"Shape of noise ceiling: {nc.shape}")
-            return nc
+        if not nc_file.exists():
+            raise DataNotFoundError(
+                f"GLMsingle noise ceiling not found: {nc_file} "
+                f"(sub={sub}, ses={ses}, glmtype={glmtype}, direction={direction})"
+            )
+        return nib.load(nc_file).get_fdata()
 
     def read_R2_mask(
         self,
@@ -430,7 +401,7 @@ class GLMSingleAccess:
         """
         beta_dir = (
             self.video_betas_dir
-            / f"sub-{sub:03d}"
+            / f"sub-{fmt_sub(sub)}"
             / f"space-epi{resolution}"
             / direction
         )
@@ -469,13 +440,13 @@ class GLMSingleAccess:
                 sub, video_num, direction, glmtype, resolution, zscore=False
             )
 
-        if not os.path.exists(beta_file):
-            # print(f"File {beta_file} does not exist")
-            return None
-        else:
-            beta = nib.load(beta_file).get_fdata()
-            # print(f"Loaded beta from {beta_file}")
-            # print(f"Shape of beta: {beta.shape}")
-            if average_repeat:
-                beta = beta.mean(axis=0)
-            return beta
+        if not beta_file.exists():
+            raise DataNotFoundError(
+                f"GLMsingle video betas not found: {beta_file} "
+                f"(sub={sub}, video={video_num}, direction={direction}, "
+                f"glmtype={glmtype}, resolution={resolution})"
+            )
+        beta = nib.load(beta_file).get_fdata()
+        if average_repeat:
+            beta = beta.mean(axis=0)
+        return beta

@@ -1,38 +1,27 @@
-import AOTaccess
 from pathlib import Path
-import sys
-import os
-import yaml
 import numpy as np
 import h5py
 import csv
 import json
+
+from AOTaccess.config import Config
+
 # NOTE: `torch` is imported lazily inside the `_temp_*` methods that need it,
 # so the rest of the API stays importable without that heavy dependency.
 
 
 class StimuliInfoAccess:
-    def __init__(self, root_dir: Path = None):
-        """
-        Initialize the StimuliInfoAccess instance.
-
-        Loads video and video annotation directories from the settings.
+    def __init__(self, root_dir=None, config=None):
+        """Initialize the StimuliInfoAccess instance.
 
         Parameters:
-            None
-
-        Returns:
-            None
+            root_dir: If given, resolve paths relative to this dataset root.
+            config (Config): An explicit Config; takes precedence over root_dir.
         """
-        if root_dir is not None:
-            self.video_dir = root_dir / "videos"
-            self.video_annotation_dir = root_dir / "video_annotations"
-        else:
-            basedir = Path(__file__).resolve().parent
-            settings = yaml.safe_load(open(basedir / "settings.yml"))
-            self.video_dir = Path(settings["paths"]["videos"])
-            self.picture_dir = Path(settings["paths"]["pictures"])
-            self.video_annotation_dir = Path(settings["paths"]["video_annotations"])
+        self.config = config if config is not None else Config(root_dir=root_dir)
+        self.video_dir = self.config.path("videos")
+        self.picture_dir = self.config.path("pictures")
+        self.video_annotation_dir = self.config.path("video_annotations")
 
     def get_video_path(self, video_id: int, direction: str = "fw"):
         """

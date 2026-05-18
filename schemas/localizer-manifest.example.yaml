@@ -1,14 +1,15 @@
-# Reference manifest for a localizer derivative — worked example for pRF.
+# Schema-by-example for a localizer manifest, using the pRF localizer.
 #
-# This documents the structure that `LocalizerAccess` consumes. The
-# authoritative file is written by each localizer's own pipeline into
-# `derivatives/localizers/<name>/manifest.yaml`; this copy is the schema-by-
-# example and the spec for the pending `prf` -> `localizers/pRF` move.
+# `LocalizerAccess` consumes one of these per localizer, at
+# `derivatives/localizers/<name>/manifest.yaml`. Each localizer's pipeline owns
+# its manifest (localizers are diverse — manifests are kept separate). The live
+# pRF manifest is `derivatives/localizers/prf/manifest.yaml`; this file
+# documents the structure for the fLOC and duration-mapper localizers to come.
 #
 # All `path_templates` are relative to `derivatives/localizers/<localizer>/`.
 
 manifest_schema_version: 1.0.0
-localizer: pRF
+localizer: prf                         # matches the folder name under localizers/
 kind: parametric                       # 'parametric' (model-fit maps) | 'contrast' (GLM stat maps)
 description: Population receptive field mapping (prfpy model fits).
 session: ses-pRF
@@ -20,8 +21,8 @@ subjects:                              # subjects this localizer has been run fo
   - sub-004
   - sub-007
 
-# Default values for the free path-template parameters; a caller overrides
-# any of these per call. Every localizer carries its own sensible defaults.
+# Default values for the free path-template parameters; a caller overrides any
+# of these per call. Every localizer carries its own sensible defaults.
 defaults:
   model: gauss
   resolution: 2.0mm
@@ -35,10 +36,9 @@ models:
   norm:
     full_name: Divisive-normalization pRF
 
-# Result maps. `models` lists which fit models produce each map (a map with an
-# empty/absent `models` is model-independent). `template` names the entry in
-# `path_templates` used to locate the file; the map name fills its `{map}`
-# placeholder and is the on-disk filename suffix.
+# Result maps. `models` lists which fit models produce each map (an empty/absent
+# `models` means model-independent). `template` names the path_templates entry;
+# the map name fills its `{map}` placeholder and is the on-disk filename suffix.
 maps:
   r2:        {full_name: variance explained,      models: [gauss, norm], template: param_map}
   ecc:       {full_name: eccentricity,            models: [gauss, norm], template: param_map}
@@ -57,11 +57,12 @@ maps:
   surr_bsl:  {full_name: surround baseline,       models: [norm],        template: param_map}
   surr_size: {full_name: surround size,           models: [norm],        template: param_map}
   neur_bsl:  {full_name: neural baseline,         models: [norm],        template: param_map}
+  noiseceiling: {full_name: split-half noise ceiling, models: [], template: noiseceiling}
 
 path_templates:
   param_map:
     template: sub-{sub}/prf_fits/params/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_{map}.nii.gz
     parameters: [sub, map, model, resolution, runpart, rec]
-
-# Auxiliary maps (e.g. the split-half noise ceiling) get their own entry in
-# `maps` + `path_templates` once the move fixes their final location.
+  noiseceiling:
+    template: sub-{sub}/prep/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-noiseceiling_part-mag_bold_space-epi_{resolution}.nii.gz
+    parameters: [sub, resolution, rec]

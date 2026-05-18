@@ -1,31 +1,19 @@
-import AOTaccess
-from pathlib import Path
-import sys
-import os
 import yaml
+
+from AOTaccess.config import Config
 
 
 class ExpDesignAccess:
-    def __init__(self, root_dir: Path = None):
-        """
-        Initialize the ExpDesignAccess instance.
-
-        Loads the experiment design directory and run number from the settings.
+    def __init__(self, root_dir=None, config=None):
+        """Initialize the ExpDesignAccess instance.
 
         Parameters:
-            None
-
-        Returns:
-            None
+            root_dir: If given, resolve paths relative to this dataset root.
+            config (Config): An explicit Config; takes precedence over root_dir.
         """
-        if root_dir is not None:
-            self.root_expdesign_dir = root_dir / "aot/data/experiment/settings/main"
-            self.run_number = 10
-        else:
-            basedir = Path(__file__).resolve().parent
-            settings = yaml.safe_load(open(basedir / "settings.yml"))
-            self.root_expdesign_dir = Path(settings["paths"]["AOTdesignsettings"])
-            self.run_number = settings["parameters"]["run_number"]
+        self.config = config if config is not None else Config(root_dir=root_dir)
+        self.root_expdesign_dir = self.config.path("AOTdesignsettings")
+        self.run_number = self.config.param("run_number", 10)
 
     def read_expdesign_file(self, sub: int, ses: int, run: int):
         """
