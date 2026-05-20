@@ -33,6 +33,12 @@ class AOTAccess:
         self.roi_access = ROIAccess(config=self.config)
         self.root_path = root_path
 
+    def subject(self, sub):
+        """A per-subject access object (AOTSubject)."""
+        # imported here to keep top-level imports light (pandas dependency)
+        from AOTaccess.subject import AOTSubject
+        return AOTSubject(sub, config=self.config, glmtype="TYPED_FITHRF_GLMDENOISE_RR")
+
     def read_affine_header(self, sub: int):
         """
         Read affine matrix and header for a subject.

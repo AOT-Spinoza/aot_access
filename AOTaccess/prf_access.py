@@ -36,7 +36,7 @@ class PrfAccess:
         """List the pRF fit models ('gauss', 'norm')."""
         return self.localizer.models(_LOCALIZER)
 
-    def param_path(self, sub, param, model="gauss", resolution="2.0mm",
+    def param_path(self, sub, param, model="gauss", resolution="2p0mm",
                    runpart="all", rec="nordicstc"):
         """Path to a fitted pRF parameter map."""
         return self.localizer.map_path(
@@ -44,7 +44,7 @@ class PrfAccess:
             runpart=runpart, rec=rec,
         )
 
-    def read_param(self, sub, param, model="gauss", resolution="2.0mm",
+    def read_param(self, sub, param, model="gauss", resolution="2p0mm",
                    runpart="all", rec="nordicstc", mask=False,
                    mask_r2_threshold=0.1):
         """Read a fitted pRF parameter map as an ndarray.
@@ -64,7 +64,7 @@ class PrfAccess:
             data[r2 < mask_r2_threshold] = 0
         return data
 
-    def read_noiseceiling(self, sub, resolution="2.0mm", rec="nordicstc",
+    def read_noiseceiling(self, sub, resolution="2p0mm", rec="nordicstc",
                           mask=False, mask_r2_threshold=0.1):
         """Read the pRF-session split-half noise-ceiling map as an ndarray."""
         data = self.localizer.read_map(

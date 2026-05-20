@@ -25,7 +25,7 @@ subjects:                              # subjects this localizer has been run fo
 # of these per call. Every localizer carries its own sensible defaults.
 defaults:
   model: gauss
-  resolution: 2.0mm
+  resolution: 2p0mm
   runpart: all
   rec: nordicstc
 
@@ -61,8 +61,8 @@ maps:
 
 path_templates:
   param_map:
-    template: sub-{sub}/prf_fits/params/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi_{resolution}_desc-prf_params_{map}.nii.gz
+    template: sub-{sub}/prf_fits/params/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi{resolution}_desc-prf_params_{map}.nii.gz
     parameters: [sub, map, model, resolution, runpart, rec]
   noiseceiling:
-    template: sub-{sub}/prep/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-noiseceiling_part-mag_bold_space-epi_{resolution}.nii.gz
+    template: sub-{sub}/prep/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-noiseceiling_part-mag_bold_space-epi{resolution}.nii.gz
     parameters: [sub, resolution, rec]

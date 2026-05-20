@@ -39,6 +39,18 @@ predate the suite — exploratory usage references, not maintained tests.
 - Each `*_access.py` defines exactly one `*Access` class scoped to one data domain
   (glmsingle betas, preprocessed BOLD, raw BIDS, experiment design YAMLs, behavioral memory
   scores, pRF fits, stimulus annotations, experiment logs, anatomy, ROIs, localizers).
+- **`AOTSubject`** (`subject.py`) is the primary user-facing object — bind a subject id
+  once, then call `get_brain_mask` / `get_betas(ses, roi=, nc_threshold=, …)` /
+  `get_video_betas` / `get_run_betas` / `get_roi_mask` / `get_voxel_coordinates` /
+  `to_nifti` / `trial_table`. It composes the per-domain access classes plus the brain
+  / discovery helpers. Working data is **flat over a per-subject brain mask**
+  (`compute_brain_mask` in `brain.py`, derived from GLMsingle R² > 0), and
+  `get_betas` returns `(n_trials, n_voxels)` — the ML-standard convention. `to_nifti`
+  is the inverse: a 1-D voxel vector back to a 3-D NIfTI on the subject grid.
+  `AOTAccess.subject(sub)` is the facade entry point.
+- **`discovery.py`** holds filesystem/manifest-backed free functions
+  (`subjects`, `sessions`, `runs`, `videos`, `atlases`, `rois`, `localizers`) so
+  callers no longer have to guess identifiers.
 
 ### ROIAccess is manifest-driven
 
