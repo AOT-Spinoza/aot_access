@@ -26,17 +26,17 @@ MODEL_ENTITY_MAP = {
 
 def build_per_session_bids_nii(sub, ses, resolution, model, desc):
     model_entity = MODEL_ENTITY_MAP.get(model, model)
-    return f"sub-{sub:03d}_ses-{ses:02d}_space-epi{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
+    return f"sub-{sub:03d}_ses-{ses:02d}_space-T1w_res-{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
 
 
 def build_per_video_bids_nii(sub, resolution, model, video_num, zscore=True):
     model_entity = MODEL_ENTITY_MAP.get(model, model)
     suffix = "betaszscore" if zscore else "betas"
-    return f"sub-{sub:03d}_space-epi{resolution}_model-{model_entity}_desc-{video_num:04d}{suffix}.nii.gz"
+    return f"sub-{sub:03d}_space-T1w_res-{resolution}_model-{model_entity}_desc-{video_num:04d}{suffix}.nii.gz"
 
 
 def build_figure_bids_png(sub, ses, resolution, desc):
-    return f"sub-{sub:03d}_ses-{ses:02d}_space-epi{resolution}_desc-{desc}.png"
+    return f"sub-{sub:03d}_ses-{ses:02d}_res-{resolution}_desc-{desc}.png"
 
 
 class GLMSingleAccess:
@@ -98,7 +98,7 @@ class GLMSingleAccess:
             self.glmsingle_main_dir
             / f"sub-{sub:03d}"
             / f"ses-{ses:02d}"
-            / f"space-epi{resolution}"
+            / f"space-T1w_res-{resolution}"
         )
         return glm_type_dir
 
@@ -194,7 +194,7 @@ class GLMSingleAccess:
             affine_source_path
             / f"sub-{sub:03d}"
             / "fiducial"
-            / "epi2p0mm"
+            / "res-2p0mm"
             / f"sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
@@ -210,7 +210,7 @@ class GLMSingleAccess:
             affine_source_path
             / f"sub-{sub:03d}"
             / "fiducial"
-            / "epi2p0mm"
+            / "res-2p0mm"
             / f"sub-{sub:03d}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
@@ -431,7 +431,7 @@ class GLMSingleAccess:
         beta_dir = (
             self.video_betas_dir
             / f"sub-{sub:03d}"
-            / f"space-epi{resolution}"
+            / f"space-T1w_res-{resolution}"
             / direction
         )
         beta_file = beta_dir / build_per_video_bids_nii(sub, resolution, glmtype, video_num, zscore)
