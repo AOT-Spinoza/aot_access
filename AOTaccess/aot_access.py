@@ -163,7 +163,7 @@ class AOTAccess:
             sub=sub,
             roi=roi,
             atlas=atlas,
-            space="fsnative",
+            space="T1w",
             res=resolution,
             cons=cons,
             hemi=hemi,

@@ -118,7 +118,7 @@ class AOTSubject:
         """ROIs available for this subject in the ROI manifest."""
         return self.roi.rois(subject=self.sub)
 
-    def get_roi_mask(self, query, atlas="wang_2015", space="fsnative",
+    def get_roi_mask(self, query, atlas="wang_2015", space="T1w",
                      res=None, cons="balanced", hemi=None):
         """A boolean 3-D mask from an ROI ``query``, restricted to the brain mask.
 
@@ -128,8 +128,8 @@ class AOTSubject:
         * ``"all"`` — every ROI available for the subject;
         * a list of names / ``"all"`` — returns the **union** of all matches.
 
-        ``space="fsnative"`` and ``res=self.resolution`` index the EPI grid
-        (same voxels as the betas).
+        ``space="T1w"`` and ``res=self.resolution`` index the subject-native
+        volume (same grid as the GLMsingle betas).
         """
         res = res or self.resolution
         names = self._resolve_roi_query(query)

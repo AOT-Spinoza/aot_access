@@ -17,7 +17,7 @@ def test_discovery_from_synthetic_manifest(synthetic_roi):
 def test_read_mask_synthetic(synthetic_roi):
     r = ROIAccess(root_dir=synthetic_roi)
     mask = r.read_mask(
-        1, "AAA", atlas="demo", space="mni", res="1p25mm", cons="balanced"
+        1, "AAA", atlas="demo", space="MNI", res="1p25mm", cons="balanced"
     )
     assert mask.dtype == bool
     assert mask.sum() > 0
@@ -26,7 +26,7 @@ def test_read_mask_synthetic(synthetic_roi):
 def test_missing_mask_raises_data_not_found(synthetic_roi):
     r = ROIAccess(root_dir=synthetic_roi)
     with pytest.raises(DataNotFoundError):
-        r.read_mask(1, "AAA", atlas="demo", space="mni", res="9mm", cons="balanced")
+        r.read_mask(1, "AAA", atlas="demo", space="MNI", res="9mm", cons="balanced")
 
 
 def test_resolve_validates_template_parameters(synthetic_roi):
@@ -53,7 +53,7 @@ def test_real_manifest_lists_known_atlases(aot_config):
 def test_real_mask_on_epi_grid(aot_config):
     r = ROIAccess(config=aot_config)
     mask = r.read_mask(
-        1, "V1v", atlas="wang_2015", space="fsnative", res="2p0mm", cons="balanced"
+        1, "V1v", atlas="wang_2015", space="T1w", res="2p0mm", cons="balanced"
     )
     assert mask.shape == (69, 81, 86)
     assert mask.sum() > 0

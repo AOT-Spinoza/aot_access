@@ -19,13 +19,50 @@ from AOTaccess.config import Config
 from AOTaccess.errors import DataNotFoundError
 
 
-# Public space name -> the prefix used in MANIFEST.yaml path-template keys.
-_SPACE_ALIASES = {
-    "mni": "mni",
-    "MNI152NLin2009cAsym": "mni",
-    "fsnative": "fsnative",
-    "epi": "fsnative",  # fsnative_volume is the EPI grid
+# User-facing volume-space label -> ROI manifest template-key prefix.
+# Following the project convention adopted 2026-05-22: `T1w` is the canonical
+# label for the subject-native volume, `MNI` for the standard volume; bare
+# `fsnative` and `fsaverage` are reserved for cortical surfaces.
+#
+# The current ROI manifest still uses the legacy template-key prefixes
+# `fsnative_volume_*` and `mni_volume_*`; this map routes the canonical
+# user-facing labels to them transitionally. When the aot_rois toolchain
+# regenerates the store with BIDS-canonical entity ordering and the new
+# template keys (`T1w_volume_*`, `MNI_volume_*`, surfaces under
+# `space-fsnative`/`space-fsaverage`), flip this map to identity:
+#
+#     _VOLUME_SPACE_ALIASES = {"T1w": "T1w", "MNI": "MNI"}
+#
+# Everything else (defaults, surface methods, _resolve_volume_space) is
+# already canonical and needs no further change.
+_VOLUME_SPACE_ALIASES = {
+    "T1w": "fsnative",
+    "MNI": "mni",
+    "MNI152NLin2009cAsym": "mni",   # BIDS-canonical alias
+    "epi": "fsnative",              # legacy alias, kept transitionally
 }
+
+# Spaces accepted by surface methods.
+_SURFACE_SPACES = {"fsnative", "fsaverage"}
+
+
+def _resolve_volume_space(space):
+    """Validate a volume-method `space` arg and return its manifest prefix.
+
+    Rejects surface labels (`fsnative`, `fsaverage`) with a clear hint.
+    """
+    if space in _SURFACE_SPACES:
+        raise ValueError(
+            f"{space!r} is a surface space; for volumetric ROI masks use "
+            f"space='T1w' (subject-native) or space='MNI'. Surface methods "
+            f"(read_surface_label) take {space!r}."
+        )
+    if space not in _VOLUME_SPACE_ALIASES:
+        raise ValueError(
+            f"Unknown volume space {space!r}. "
+            f"Valid: {sorted(_VOLUME_SPACE_ALIASES)}."
+        )
+    return _VOLUME_SPACE_ALIASES[space]
 
 
 class ROIAccess:
@@ -75,9 +112,9 @@ class ROIAccess:
         """List conservativeness levels, e.g. 'strict', 'balanced', 'liberal'."""
         return list(self.manifest["conservativeness_levels"])
 
-    def resolutions(self, space: str = "fsnative"):
-        """List available resolutions for a volumetric space ('fsnative'/'mni')."""
-        key = _SPACE_ALIASES.get(space, space)
+    def resolutions(self, space: str = "T1w"):
+        """List available resolutions for a volumetric space ('T1w' / 'MNI')."""
+        key = _resolve_volume_space(space)
         return list(self.manifest["resolutions"][key])
 
     def subjects(self):
@@ -156,7 +193,7 @@ class ROIAccess:
     # ------------------------------------------------------------------
     # volumetric masks (single ROI)
     # ------------------------------------------------------------------
-    def mask_path(self, sub, roi, atlas="wang_2015", space="fsnative",
+    def mask_path(self, sub, roi, atlas="wang_2015", space="T1w",
                   res="2p0mm", cons="balanced", hemi=None):
         """Path to a single-ROI binary mask.
 
@@ -164,14 +201,14 @@ class ROIAccess:
         'L'/'R' resolves the per-hemisphere mask. ``space`` is 'fsnative'
         (the EPI grid) or 'mni'.
         """
-        sp = _SPACE_ALIASES.get(space, space)
+        sp = _resolve_volume_space(space)
         kind = "per_hemi" if hemi is not None else "bilateral"
         params = dict(sub=sub, atlas=atlas, roi=roi, res=res, cons=cons)
         if hemi is not None:
             params["hemi"] = hemi
         return self.resolve(f"{sp}_volume_mask_{kind}", **params)
 
-    def read_mask(self, sub, roi, atlas="wang_2015", space="fsnative",
+    def read_mask(self, sub, roi, atlas="wang_2015", space="T1w",
                   res="2p0mm", cons="balanced", hemi=None):
         """Load a single-ROI mask as a boolean ndarray.
 
@@ -190,17 +227,17 @@ class ROIAccess:
     # ------------------------------------------------------------------
     # volumetric parcellations (all ROIs of an atlas)
     # ------------------------------------------------------------------
-    def dseg_path(self, sub, atlas="wang_2015", space="fsnative",
+    def dseg_path(self, sub, atlas="wang_2015", space="T1w",
                   res="2p0mm", cons="balanced", hemi=None):
         """Path to an atlas discrete segmentation (integer-labelled volume)."""
-        sp = _SPACE_ALIASES.get(space, space)
+        sp = _resolve_volume_space(space)
         kind = "per_hemi" if hemi is not None else "bilateral"
         params = dict(sub=sub, atlas=atlas, res=res, cons=cons)
         if hemi is not None:
             params["hemi"] = hemi
         return self.resolve(f"{sp}_volume_dseg_{kind}", **params)
 
-    def read_dseg(self, sub, atlas="wang_2015", space="fsnative",
+    def read_dseg(self, sub, atlas="wang_2015", space="T1w",
                   res="2p0mm", cons="balanced", hemi=None):
         """Load an atlas discrete segmentation as an integer ndarray."""
         path = self.dseg_path(sub, atlas, space, res, cons, hemi)
