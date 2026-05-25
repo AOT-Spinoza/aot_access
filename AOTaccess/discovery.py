@@ -81,7 +81,7 @@ def videos(sub, direction="fw", resolution="2p0mm", config=None):
     cfg = _cfg(config)
     d = (
         cfg.path("glmsingle") / "per_video"
-        / f"sub-{fmt_sub(sub)}" / f"space-epi{resolution}" / direction
+        / f"sub-{fmt_sub(sub)}" / f"space-T1w_res-{resolution}" / direction
     )
     if not d.exists():
         return []

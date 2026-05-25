@@ -27,7 +27,7 @@ class AnatomyAccess:
             self.config.anatomy_root()
             / f"sub-{sub}"
             / "fiducial"
-            / "epi_1.7mm"
+            / "res-1p7mm"
             / f"sub-{sub}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
         if not anat_path.exists():

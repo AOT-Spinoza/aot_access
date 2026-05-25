@@ -37,12 +37,12 @@ class PreprocedAccess:
             nibabel.nifti1.Nifti1Image: The preprocessed functional image.
         """
 
-        # example file: derivatives/aot_prep/sub-001/ses-01/func/sub-001_ses-01_task-AOT_rec-nordicstc_run-01_part-mag_bold_space-epi2p0mm.nii.gz
+        # example file: derivatives/aot_prep/sub-001/ses-01/func/sub-001_ses-01_task-AOT_rec-nordicstc_run-01_part-mag_bold_space-T1w_res-2p0mm.nii.gz
         sub = fmt_sub(sub)
         ses = fmt_ses(ses)
         run = fmt_run(run)
 
-        filename = f"sub-{sub}_ses-{ses}_task-{task}_rec-nordicstc_run-{run}_part-mag_bold_space-epi{resolution}.nii.gz"
+        filename = f"sub-{sub}_ses-{ses}_task-{task}_rec-nordicstc_run-{run}_part-mag_bold_space-T1w_res-{resolution}.nii.gz"
 
         filepath = self.root_preproced_dir / f"sub-{sub}/ses-{ses}/func" / filename
 

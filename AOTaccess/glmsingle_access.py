@@ -14,17 +14,17 @@ MODEL_ENTITY_MAP = {
 
 def build_per_session_bids_nii(sub, ses, resolution, model, desc):
     model_entity = MODEL_ENTITY_MAP.get(model, model)
-    return f"sub-{fmt_sub(sub)}_ses-{fmt_ses(ses)}_space-epi{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
+    return f"sub-{fmt_sub(sub)}_ses-{fmt_ses(ses)}_space-T1w_res-{resolution}_model-{model_entity}_desc-{desc}.nii.gz"
 
 
 def build_per_video_bids_nii(sub, resolution, model, video_num, zscore=True):
     model_entity = MODEL_ENTITY_MAP.get(model, model)
     suffix = "betaszscore" if zscore else "betas"
-    return f"sub-{fmt_sub(sub)}_space-epi{resolution}_model-{model_entity}_desc-{fmt_video(video_num)}{suffix}.nii.gz"
+    return f"sub-{fmt_sub(sub)}_space-T1w_res-{resolution}_model-{model_entity}_desc-{fmt_video(video_num)}{suffix}.nii.gz"
 
 
 def build_figure_bids_png(sub, ses, resolution, desc):
-    return f"sub-{fmt_sub(sub)}_ses-{fmt_ses(ses)}_space-epi{resolution}_desc-{desc}.png"
+    return f"sub-{fmt_sub(sub)}_ses-{fmt_ses(ses)}_space-T1w_res-{resolution}_desc-{desc}.png"
 
 
 class GLMSingleAccess:
@@ -77,7 +77,7 @@ class GLMSingleAccess:
             self.glmsingle_main_dir
             / f"sub-{fmt_sub(sub)}"
             / f"ses-{fmt_ses(ses)}"
-            / f"space-epi{resolution}"
+            / f"space-T1w_res-{resolution}"
         )
         return glm_type_dir
 
@@ -163,37 +163,28 @@ class GLMSingleAccess:
             )
         return nib.load(betas_file).get_fdata()
 
-    def read_affine(
-        self, sub: int
-    ):  # for new data each sunject shouold have a single affine matrix for all sessions
-        affine_source_path = self.config.anatomy_root()
-        affine_matrix_path = (
-            affine_source_path
-            / f"sub-{fmt_sub(sub)}"
+    def _anatomy_fiducial_path(self, sub, resolution):
+        """Path to the subject's T1w anatomy resampled to a given EPI grid."""
+        sub_t = fmt_sub(sub)
+        return (
+            self.config.anatomy_root()
+            / f"sub-{sub_t}"
             / "fiducial"
-            / "epi2p0mm"
-            / f"sub-{fmt_sub(sub)}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+            / f"res-{resolution}"
+            / f"sub-{sub_t}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
 
-        # print("affine matrix source path:", affine_matrix_path)
-        affine_matrix = nib.load(affine_matrix_path).affine
-        return affine_matrix
+    def read_affine(self, sub: int, resolution: str = "2p0mm"):
+        """Affine matrix of the subject's T1w anatomy at the EPI grid.
 
-    def read_header(
-        self, sub: int
-    ):  # for new data each sunject shouold have a single affine matrix for all sessions
-        affine_source_path = self.config.anatomy_root()
-        affine_matrix_path = (
-            affine_source_path
-            / f"sub-{fmt_sub(sub)}"
-            / "fiducial"
-            / "epi2p0mm"
-            / f"sub-{fmt_sub(sub)}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
-        )
+        Each subject has one anatomical frame, but resampled to multiple
+        EPI resolutions; the affine differs by ``resolution``.
+        """
+        return nib.load(self._anatomy_fiducial_path(sub, resolution)).affine
 
-        # print("affine matrix source path:", affine_matrix_path)
-        header = nib.load(affine_matrix_path).header
-        return header
+    def read_header(self, sub: int, resolution: str = "2p0mm"):
+        """NIfTI header of the subject's T1w anatomy at the EPI grid."""
+        return nib.load(self._anatomy_fiducial_path(sub, resolution)).header
 
     def get_meanvol_path(
         self,
@@ -402,7 +393,7 @@ class GLMSingleAccess:
         beta_dir = (
             self.video_betas_dir
             / f"sub-{fmt_sub(sub)}"
-            / f"space-epi{resolution}"
+            / f"space-T1w_res-{resolution}"
             / direction
         )
         beta_file = beta_dir / build_per_video_bids_nii(sub, resolution, glmtype, video_num, zscore)

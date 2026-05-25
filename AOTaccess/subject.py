@@ -95,16 +95,20 @@ class AOTSubject:
 
     @property
     def affine(self):
-        """The subject-native (T1w) affine, cached."""
+        """The subject-native (T1w) affine at this subject's resolution, cached."""
         if self._affine is None:
-            self._affine = self.glmsingle.read_affine(self.sub)
+            self._affine = self.glmsingle.read_affine(
+                self.sub, resolution=self.resolution,
+            )
         return self._affine
 
     @property
     def header(self):
-        """NIfTI header from the anatomical reference, cached."""
+        """NIfTI header from the anatomical reference at this resolution, cached."""
         if self._header is None:
-            self._header = self.glmsingle.read_header(self.sub)
+            self._header = self.glmsingle.read_header(
+                self.sub, resolution=self.resolution,
+            )
         return self._header
 
     def get_voxel_coordinates(self, roi=None, mask=None):

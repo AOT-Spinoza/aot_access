@@ -61,8 +61,8 @@ maps:
 
 path_templates:
   param_map:
-    template: sub-{sub}/prf_fits/params/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-epi{resolution}_desc-prf_params_{map}.nii.gz
+    template: sub-{sub}/prf_fits/params/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-T1w_res-{resolution}_desc-prf_params_{map}.nii.gz
     parameters: [sub, map, model, resolution, runpart, rec]
   noiseceiling:
-    template: sub-{sub}/prep/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-noiseceiling_part-mag_bold_space-epi{resolution}.nii.gz
+    template: sub-{sub}/prep/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-noiseceiling_part-mag_bold_space-T1w_res-{resolution}.nii.gz
     parameters: [sub, resolution, rec]

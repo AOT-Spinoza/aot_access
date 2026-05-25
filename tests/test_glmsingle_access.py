@@ -12,7 +12,7 @@ from AOTaccess.errors import DataNotFoundError
 
 def test_per_session_filename_int_session():
     fn = build_per_session_bids_nii(1, 2, "2p0mm", "TYPED_FITHRF_GLMDENOISE_RR", "R2")
-    assert fn == "sub-001_ses-02_space-epi2p0mm_model-TYPED_desc-R2.nii.gz"
+    assert fn == "sub-001_ses-02_space-T1w_res-2p0mm_model-TYPED_desc-R2.nii.gz"
 
 
 def test_per_session_filename_string_session():
@@ -20,14 +20,14 @@ def test_per_session_filename_string_session():
     fn = build_per_session_bids_nii(
         1, "fLOC", "2p0mm", "TYPED_FITHRF_GLMDENOISE_RR", "R2"
     )
-    assert fn == "sub-001_ses-fLOC_space-epi2p0mm_model-TYPED_desc-R2.nii.gz"
+    assert fn == "sub-001_ses-fLOC_space-T1w_res-2p0mm_model-TYPED_desc-R2.nii.gz"
 
 
 def test_per_video_filename():
     fn = build_per_video_bids_nii(
         3, "2p0mm", "TYPED_FITHRF_GLMDENOISE_RR", 7, zscore=True
     )
-    assert fn == "sub-003_space-epi2p0mm_model-TYPED_desc-0007betaszscore.nii.gz"
+    assert fn == "sub-003_space-T1w_res-2p0mm_model-TYPED_desc-0007betaszscore.nii.gz"
 
 
 def test_nii_dir_path_accepts_string_session():
@@ -35,7 +35,7 @@ def test_nii_dir_path_accepts_string_session():
     path = g.get_nii_dir_path(1, "fLOC", resolution="2p0mm")
     assert "sub-001" in str(path)
     assert "ses-fLOC" in str(path)
-    assert path.name == "space-epi2p0mm"
+    assert path.name == "space-T1w_res-2p0mm"
 
 
 @pytest.mark.cluster
