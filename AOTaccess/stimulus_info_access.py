@@ -1,10 +1,13 @@
 from pathlib import Path
 import numpy as np
+import pandas as pd
+import yaml
 import h5py
 import csv
 import json
 
 from AOTaccess.config import Config
+from AOTaccess.errors import DataNotFoundError
 
 # NOTE: `torch` is imported lazily inside the `_temp_*` methods that need it,
 # so the rest of the API stays importable without that heavy dependency.
@@ -22,6 +25,121 @@ class StimuliInfoAccess:
         self.video_dir = self.config.path("videos")
         self.picture_dir = self.config.path("pictures")
         self.video_annotation_dir = self.config.path("video_annotations")
+        # Lazy caches for the bulky cross-video annotation files.
+        self._online_behavior = None
+        self._moten_filter_info = {}
+
+    # ------------------------------------------------------------------
+    # cross-video annotations manifest
+    # ------------------------------------------------------------------
+    def annotations_manifest_dir(self):
+        """Path to the cross-video annotations manifest folder.
+
+        Holds the condensed online-behavior table, pymoten filter-bank
+        metadata, and per-annotation-pipeline descriptions (qwen, …).
+        """
+        return self.video_annotation_dir / "manifest"
+
+    def read_online_behavior_table(self, video=None, direction=None):
+        """The condensed per-video online-behavior table.
+
+        Returns a :class:`pandas.DataFrame` with one row per (video,
+        direction) — identifiability score (+ CI), direction accuracy
+        (raw and quality-weighted), mean confidence and RT, decile, and a
+        ``yaml_path`` pointing at the per-video detail file (see
+        :meth:`read_video_behavior`). Cached after the first load.
+
+        Parameters:
+            video (int): Filter to one ``source_id``.
+            direction (str): Filter to one direction (``"fw"`` / ``"rv"``).
+        """
+        if self._online_behavior is None:
+            path = self.annotations_manifest_dir() / "online_behavior.tsv"
+            if not path.exists():
+                raise DataNotFoundError(
+                    f"Online-behavior table not found: {path}"
+                )
+            self._online_behavior = pd.read_csv(path, sep="\t")
+        df = self._online_behavior
+        if video is not None:
+            df = df[df.source_id == int(video)]
+        if direction is not None:
+            mapped = {"fw": "forward", "rv": "backward"}.get(direction, direction)
+            df = df[df.direction == mapped]
+        return df.reset_index(drop=True)
+
+    def read_video_behavior(self, video_id: int, direction: str = "fw"):
+        """The detailed per-video online-behavior YAML.
+
+        Returns a dict with ``video``, ``summary``, ``source_context`` and
+        ``responses`` — one entry per online subject (response direction,
+        confidence, RTs, subject quality weight, included flag, …).
+        """
+        path = (
+            self.get_video_annotation_dir(video_id, direction)
+            / "behavior"
+            / "online_behavior.yaml"
+        )
+        if not path.exists():
+            raise DataNotFoundError(
+                f"Per-video behavior YAML not found: {path}"
+            )
+        with open(path) as f:
+            return yaml.safe_load(f)
+
+    def read_qwen_description_meta(self):
+        """Metadata about the qwen_description annotation pipeline."""
+        return self._read_manifest_yaml("qwen_description.yml")
+
+    def read_qwen_embedding_meta(self):
+        """Metadata about the qwen_embedding annotation pipeline."""
+        return self._read_manifest_yaml("qwen_embedding.yml")
+
+    def read_moten_filter_info(self, highest_freq: int = 32):
+        """Pymoten filter-bank info for the given max spatial frequency.
+
+        Returns a dict with ``meta`` (filter-bank parameters; ``n_filters``
+        is the channel count of the motion-energy NPYs), ``dva_alignment``
+        (image-to-degrees mapping), and ``filters`` — one dict per filter,
+        with its centre, spatial/temporal frequency, direction, envelope
+        and pRF-aligned coordinates (x_dva, y_dva, eccentricity, polar
+        angle). Cached after the first load (the YAML is large —
+        ~38 k lines for 16-Hz, ~178 k for 32-Hz).
+
+        Parameters:
+            highest_freq (int): 16 or 32 — matches
+                :meth:`read_motion_energy_features`.
+        """
+        if highest_freq not in (16, 32):
+            raise ValueError(
+                f"highest_freq must be 16 or 32; got {highest_freq!r}"
+            )
+        if highest_freq not in self._moten_filter_info:
+            path = self.annotations_manifest_dir() / f"moten_filter_info_{highest_freq}.yml"
+            if not path.exists():
+                raise DataNotFoundError(
+                    f"Pymoten filter info not found: {path}"
+                )
+            with open(path) as f:
+                self._moten_filter_info[highest_freq] = yaml.safe_load(f)
+        return self._moten_filter_info[highest_freq]
+
+    def available_annotations(self, video_id: int, direction: str = "fw"):
+        """Annotation kinds available for one (video, direction)."""
+        d = self.get_video_annotation_dir(video_id, direction)
+        if not d.exists():
+            return []
+        return sorted(p.name for p in d.iterdir() if p.is_dir())
+
+    def _read_manifest_yaml(self, name):
+        """Load one YAML from the annotations manifest folder."""
+        path = self.annotations_manifest_dir() / name
+        if not path.exists():
+            raise DataNotFoundError(
+                f"Annotations manifest file not found: {path}"
+            )
+        with open(path) as f:
+            return yaml.safe_load(f)
 
     def get_video_path(self, video_id: int, direction: str = "fw"):
         """
