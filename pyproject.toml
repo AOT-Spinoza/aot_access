@@ -39,6 +39,16 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "black", "flake8"]
+docs = [
+    "sphinx>=7",
+    "furo",
+    "sphinx-autodoc-typehints",
+    "sphinx-gallery",
+    "myst-parser",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "matplotlib",
+]
 
 [tool.setuptools]
 packages = ["AOTaccess"]

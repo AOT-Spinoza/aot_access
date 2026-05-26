@@ -1,0 +1,26 @@
+# Read the Docs configuration — https://docs.readthedocs.io/en/stable/config-file/v2.html
+version: 2
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.11"
+  jobs:
+    pre_build:
+      # The real AOT dataset (under /research/...) is not reachable from
+      # the RTD build environment, so we skip executing the gallery scripts;
+      # they're still rendered as code listings with their narrative blocks.
+      # For full execution (with output + figures), build the docs locally
+      # on the cluster: `cd docs && sphinx-build -b html . _build/html`.
+      - export SPHINX_GALLERY_EXECUTE=0
+
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
+
+sphinx:
+  configuration: docs/conf.py
+  fail_on_warning: false
