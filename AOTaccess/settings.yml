@@ -7,9 +7,9 @@ paths:
   pictures: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/pictures"
   video_annotations: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/stimuli/annotations"
   AOTdesignsettings: "/research/FGB-CognitivePsychology-Knapen/szh208/AOT_code_repos/arrow_of_time_experiment/aot/data/experiment/settings/main"
-  # sbert_embeddings: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
-  # llama_descriptions: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean"
-  # motion_energy: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
+  # (Earlier per-pipeline derivative paths — sbert_embeddings, llama_descriptions,
+  # motion_energy — collapsed into the video_annotations tree. The legacy 'prf'
+  # store was superseded by the localizers/prf member.)
   roi: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/roi"
   localizers: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/localizers"
 

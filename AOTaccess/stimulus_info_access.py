@@ -181,25 +181,6 @@ class StimuliInfoAccess:
         """
         return self.video_annotation_dir / f"{video_id:04d}_{direction}.mp4"
     
-    def _temp_read_qwen_description(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily read the Qwen description text for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            str: Content of the description text file.
-        """
-        # example : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
-        temp_root_dir = Path(
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_describe/videos_fw_describe_qwen_pure"
-        )
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
-        with open(temp_file, "r") as f:
-            return f.read()
-
     def read_qwen_description(self, video_id: int, direction: str = "fw"):
         """
         Read and return the Qwen description text for a video.
@@ -220,41 +201,6 @@ class StimuliInfoAccess:
         with open(filepath, "r") as f:
             return f.read()
          
-    def _temp_read_qwen_embedding(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily read the Qwen embedding for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            dict: Content of the embedding JSON file.
-        """
-        # example :  "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048/0001_fw_embedding.json"
-
-        temp_root_dir1 = Path(
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
-        )
-        temp_root_dir2 = Path(
-            "/projects/prjs1914/output/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
-        )
-
-        if temp_root_dir1.exists():
-            temp_root_dir = temp_root_dir1
-        elif temp_root_dir2.exists():
-            temp_root_dir = temp_root_dir2
-        else:
-            raise FileNotFoundError(f"Qwen embedding file not found: {temp_root_dir1} or {temp_root_dir2}")
-
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}_embedding.json"
-        with open(temp_file, "r") as f:
-            data = json.load(f)
-        embedding = data["data"][0]["embedding"]
-        #make is numpy array
-        embedding = np.array(embedding)
-        return embedding
-
     def read_qwen_embedding(self, video_id: int, direction: str = "fw"):
         """
         Read and return the Qwen embedding for a video.
@@ -277,62 +223,6 @@ class StimuliInfoAccess:
         embedding = data["data"][0]["embedding"]
         return np.array(embedding)
 
-
-    def _temp_read_llama_description(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily read the llama description text for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            str: Content of the description text file.
-        """
-        # example : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
-        temp_root_dir = Path(
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean"
-        )
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
-        with open(temp_file, "r") as f:
-            return f.read()
-
-    def _temp_read_llama_description_v2(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily read the version 2 llama description text for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            str: Content of the description text file.
-        """
-        # example : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
-        temp_root_dir = Path(
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/withsample_t0.2_r1_v2.1"
-        )
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
-        with open(temp_file, "r") as f:
-            return f.read()
-
-    def _temp_read_sbert_embeddings(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily load SBERT embeddings for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            numpy.ndarray: Loaded SBERT embeddings.
-        """
-        temp_root_dir = Path(
-            # "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert_all-mpnet-base-v2/simple_describe_en_withsample_cleaned_embeddings_averaged"
-        )
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
-        return np.load(temp_file)
 
     def read_sbert_embeddings(self, video_id: int, direction: str = "fw"):
         """
@@ -386,42 +276,6 @@ class StimuliInfoAccess:
         )
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
-
-    def _temp_read_motion_energy_features(
-        self, video_id: int, direction: str = "fw", highest_freq=32
-    ):
-        """
-        Temporarily load motion energy features for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            numpy.ndarray: Loaded motion energy features.
-        """
-        if highest_freq == 16:
-            temp_root_dir = Path(
-                "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
-            )
-            temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
-            return np.load(temp_file)
-        elif highest_freq == 32:
-            temp_root_dir1 = Path(
-                "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/temp/motion_freq_test[0,2,4,8,16,32]"
-            )
-            temp_root_dir2 = Path(
-                "/projects/prjs1914/output/motion_freq_test[0,2,4,8,16,32]"  
-            )
-
-            if temp_root_dir1.exists():
-                temp_root_dir = temp_root_dir1
-            elif temp_root_dir2.exists():
-                temp_root_dir = temp_root_dir2
-            else:
-                raise FileNotFoundError(f"Motion energy features file not found: {temp_root_dir1} or {temp_root_dir2}")
-            temp_file = temp_root_dir / f"{video_id:04d}_{direction}.mp4.npy"
-            return np.load(temp_file)
 
     def read_motion_energy_features(
         self, video_id: int, direction: str = "fw", highest_freq: int = 32

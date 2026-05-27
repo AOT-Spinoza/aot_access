@@ -127,11 +127,13 @@ class AOTAccess:
         """
         return self.expdesign_access.get_session_uniqe_video_indexes(sub, ses)
 
-    def read_session_from_video(self, sub: int, video: int):
+    def read_session_from_video(self, sub: int, video: int, direction: str = None):
+        """Sessions where a video appears in the subject's main-task design.
+
+        Returns a sorted list of session ids. Delegates to
+        :meth:`AOTaccess.subject.AOTSubject.sessions_for_video`.
         """
-        Get session number for a given video.
-        """
-        return self.expdesign_access.get_session_id_from_video_id(sub, video)
+        return self.subject(sub).sessions_for_video(video, direction=direction)
 
     def read_preproced_bold_from_session(
         self, sub: int, ses: int, run: int, resolution: str = "2p0mm"

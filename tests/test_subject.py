@@ -119,3 +119,48 @@ def test_to_nifti_roundtrip_in_roi(sub1):
 def test_voxel_coords_match_brain_count(sub1):
     coords = sub1.get_voxel_coordinates()
     assert coords.shape == (sub1.get_n_voxels(), 3)
+
+
+@pytest.mark.cluster
+def test_sessions_for_video(sub1):
+    """Each AOT video appears exactly twice per subject across all sessions."""
+    # Pick a video that is definitely present.
+    v = sub1.videos(direction="fw")[0]
+    sessions = sub1.sessions_for_video(v, direction="fw")
+    assert all(isinstance(s, int) for s in sessions)
+    # Two chronological appearances — same or two distinct sessions.
+    appearances = sub1.trial_table().query(
+        "video == @v and direction == 'fw'"
+    )
+    assert len(appearances) == 2
+    assert set(sessions) == set(appearances.ses.tolist())
+
+
+@pytest.mark.cluster
+def test_read_glmsingle_output_and_listing(sub1):
+    """Generic GLMsingle output reader on the subject."""
+    descs = sub1.available_glmsingle_outputs(ses=1)
+    assert "HRFindex" in descs
+    hrf_idx = sub1.read_glmsingle_output(ses=1, desc="HRFindex", roi="V1v")
+    # Flat over (brain ∩ V1v) — 1-D.
+    assert hrf_idx.ndim == 1
+    assert hrf_idx.shape[0] > 0
+
+
+@pytest.mark.cluster
+def test_to_torch_dataset(sub1):
+    torch = pytest.importorskip("torch")
+    ds = sub1.to_torch_dataset(direction="fw", roi="V1v", videos=[1, 2, 3])
+    assert len(ds) == 3                                    # one per video (averaged)
+    sample = ds[0]
+    assert sample["video"] == 1
+    assert sample["direction"] == "fw"
+    assert sample["rep"] is None                           # averaged
+    assert isinstance(sample["betas"], torch.Tensor)
+    assert sample["betas"].dtype == torch.float32
+    # Without averaging: two items per video.
+    ds_split = sub1.to_torch_dataset(
+        direction="fw", roi="V1v", videos=[1, 2], average_repeats=False,
+    )
+    assert len(ds_split) == 4
+    assert ds_split[0]["rep"] == 0 and ds_split[1]["rep"] == 1

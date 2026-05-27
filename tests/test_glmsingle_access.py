@@ -50,3 +50,22 @@ def test_read_betas_missing_raises_data_not_found(aot_config):
     g = GLMSingleAccess(config=aot_config)
     with pytest.raises(DataNotFoundError):
         g.read_betas(99, 1, resolution="2p0mm")
+
+
+@pytest.mark.cluster
+def test_list_and_read_session_map(aot_config):
+    """Generic per-session desc reader covers the unmapped GLMsingle outputs."""
+    g = GLMSingleAccess(config=aot_config)
+    descs = g.list_session_descs(1, 1, resolution="2p0mm")
+    # The TYPED model writes ~12 maps per session.
+    assert {"R2", "meanvol", "betasmd", "HRFindex", "FRACvalue"}.issubset(set(descs))
+    # And one of them can be loaded via the generic method.
+    arr = g.read_session_map(1, 1, "HRFindex", resolution="2p0mm")
+    assert arr.shape == (69, 81, 86)
+
+
+@pytest.mark.cluster
+def test_read_session_map_missing_raises(aot_config):
+    g = GLMSingleAccess(config=aot_config)
+    with pytest.raises(DataNotFoundError):
+        g.read_session_map(1, 1, "no_such_desc_tag", resolution="2p0mm")

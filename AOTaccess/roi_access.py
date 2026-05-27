@@ -284,3 +284,66 @@ class ROIAccess:
         if not path.exists():
             raise DataNotFoundError(f"Group probseg not found: {path}")
         return np.asarray(nib.load(path).get_fdata())
+
+    # ------------------------------------------------------------------
+    # group majority-vote (MNI) masks
+    # ------------------------------------------------------------------
+    def group_majority_path(self, roi, hemi, atlas="wang_2015",
+                            res="1p25mm", cons="balanced"):
+        """Path to a group majority-voted mask (MNI) for one ROI."""
+        return self.resolve(
+            "group_mni_majority_per_hemi",
+            atlas=atlas, roi=roi, hemi=hemi, res=res, cons=cons,
+        )
+
+    def read_group_majority(self, roi, hemi, atlas="wang_2015",
+                            res="1p25mm", cons="balanced"):
+        """Load a group majority-voted mask (MNI) as a boolean ndarray."""
+        path = self.group_majority_path(roi, hemi, atlas, res, cons)
+        if not path.exists():
+            raise DataNotFoundError(f"Group majority mask not found: {path}")
+        return np.asarray(nib.load(path).get_fdata()) > 0
+
+    # ------------------------------------------------------------------
+    # group fsaverage surface products
+    # ------------------------------------------------------------------
+    def group_fsaverage_probseg_path(self, roi, hemi, atlas="wang_2015"):
+        """Path to a group fsaverage-surface probabilistic map for one ROI."""
+        return self.resolve(
+            "group_fsaverage_probseg_per_hemi",
+            atlas=atlas, roi=roi, hemi=hemi,
+        )
+
+    def read_group_fsaverage_probseg(self, roi, hemi, atlas="wang_2015"):
+        """Load a group fsaverage-surface probseg as a per-vertex ndarray."""
+        path = self.group_fsaverage_probseg_path(roi, hemi, atlas)
+        if not path.exists():
+            raise DataNotFoundError(f"Group fsaverage probseg not found: {path}")
+        return nib.load(path).agg_data()
+
+    def group_fsaverage_mpm_path(self, hemi, atlas="wang_2015"):
+        """Path to the group fsaverage maximum-probability-map annot."""
+        return self.resolve("group_fsaverage_mpm_annot", atlas=atlas, hemi=hemi)
+
+    # ------------------------------------------------------------------
+    # CIFTI grayordinate dlabel files (fsLR)
+    # ------------------------------------------------------------------
+    def cifti_dlabel_path(self, atlas="wang_2015", den="32k"):
+        """Path to a CIFTI dlabel for one atlas at one fsLR density.
+
+        ``den`` is ``"32k"`` or ``"170k"``.
+        """
+        key = f"cifti_{den}_dlabel"
+        if key not in self.template_keys():
+            raise ValueError(
+                f"Unknown CIFTI density {den!r}; "
+                f"available: {[k.replace('cifti_', '').replace('_dlabel', '') for k in self.template_keys() if k.startswith('cifti_')]}"
+            )
+        return self.resolve(key, atlas=atlas)
+
+    def read_cifti_dlabel(self, atlas="wang_2015", den="32k"):
+        """Load a CIFTI dlabel as a ``nibabel.cifti2.Cifti2Image``."""
+        path = self.cifti_dlabel_path(atlas, den)
+        if not path.exists():
+            raise DataNotFoundError(f"CIFTI dlabel not found: {path}")
+        return nib.load(path)

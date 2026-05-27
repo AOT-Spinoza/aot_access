@@ -36,3 +36,13 @@ def test_read_roi_mask_on_epi_grid(aot_config):
     a = AOTAccess(config=aot_config)
     mask = a.read_roi_mask(1, "V1v")
     assert mask.shape == (69, 81, 86)
+
+
+@pytest.mark.cluster
+def test_read_session_from_video(aot_config):
+    """The previously-broken facade method now returns valid sessions."""
+    a = AOTAccess(config=aot_config)
+    sessions = a.read_session_from_video(sub=1, video=1)
+    assert isinstance(sessions, list)
+    assert len(sessions) >= 1
+    assert all(isinstance(s, int) and 1 <= s <= 10 for s in sessions)

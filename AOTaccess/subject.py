@@ -226,6 +226,52 @@ class AOTSubject:
         return nc[self._resolve_mask(roi, mask)]
 
     # ------------------------------------------------------------------
+    # generic per-session GLMsingle output reader (any `desc` tag)
+    # ------------------------------------------------------------------
+    def read_glmsingle_output(self, ses, desc, roi=None, mask=None):
+        """Read any per-session GLMsingle map by its BIDS ``desc`` tag.
+
+        Use this for the many maps that don't have a dedicated method —
+        ``HRFindex``, ``HRFindexrun``, ``FRACvalue``, ``glmbadness``,
+        ``noisepool``, ``pcvoxels``, ``rrbadness``, ``scaleoffset``,
+        ``xvaltrend``, ``FitHRFR2`` / ``FitHRFR2run``. The result is flat
+        over ``brain ∩ (roi | mask)`` if the map has the same 3-D shape
+        as the brain mask; otherwise the raw ndarray is returned (some
+        maps are 4-D — e.g. ``betasmd`` itself).
+        """
+        data = self.glmsingle.read_session_map(
+            self.sub, ses, desc, glmtype=self.glmtype, resolution=self.resolution,
+        )
+        bm = self.get_brain_mask()
+        if data.shape == bm.shape:
+            return data[self._resolve_mask(roi, mask)]
+        # 4-D (per-trial) or other shape — return as-is.
+        return data
+
+    def available_glmsingle_outputs(self, ses):
+        """List GLMsingle ``desc`` tags available for one session."""
+        return self.glmsingle.list_session_descs(
+            self.sub, ses, glmtype=self.glmtype, resolution=self.resolution,
+        )
+
+    # ------------------------------------------------------------------
+    # subject-level discovery — videos and their sessions
+    # ------------------------------------------------------------------
+    def sessions_for_video(self, video, direction=None):
+        """Sessions where this video appears in the subject's main-task design.
+
+        Returns a sorted list of session ints. With ``direction``
+        (``"fw"`` / ``"rv"``), restricts to that direction. AOT videos
+        appear twice per subject — usually in different runs, sometimes
+        in different sessions.
+        """
+        t = self.trial_table()
+        t = t[~t.is_blank & (t.video == int(video))]
+        if direction is not None:
+            t = t[t.direction == direction]
+        return sorted(set(int(s) for s in t.ses.tolist()))
+
+    # ------------------------------------------------------------------
     # trial table
     # ------------------------------------------------------------------
     def trial_table(self):
@@ -284,6 +330,79 @@ class AOTSubject:
                         "rep": rep, "is_blank": False,
                     })
         return pd.DataFrame(rows)
+
+    # ------------------------------------------------------------------
+    # PyTorch dataset wrapper
+    # ------------------------------------------------------------------
+    def to_torch_dataset(self, direction="fw", roi=None, mask=None,
+                         average_repeats=True, videos=None, feature_fn=None,
+                         dtype="float32"):
+        """A ``torch.utils.data.Dataset`` over this subject's per-video betas.
+
+        Each item is a dict with ``video`` (int), ``direction``, ``rep``
+        (0/1 — or ``None`` if ``average_repeats=True``), and ``betas``
+        (a ``torch`` tensor of shape ``(n_voxels,)``). Pass
+        ``feature_fn=callable(video, direction)`` to attach per-video
+        stimulus features alongside the betas (useful for paired
+        ``(stimulus, response)`` training).
+
+        Parameters:
+            direction (str): ``"fw"`` or ``"rv"``.
+            roi / mask: voxel selector (same as the other ``get_*`` methods).
+            average_repeats (bool): If True, one item per video (mean of
+                both repetitions); else two items per video (rep 0 / rep 1).
+            videos (list[int] | None): Restrict to a subset (default: all
+                videos with per-video betas for this subject + direction).
+            feature_fn: Optional callable returning the stimulus payload.
+            dtype (str): NumPy dtype the betas are cast to before tensoring.
+
+        Returns:
+            torch.utils.data.Dataset: lazy — each ``__getitem__`` reads
+            one per-video file.
+        """
+        try:
+            import torch
+            from torch.utils.data import Dataset
+        except ImportError as exc:  # pragma: no cover - import-time only
+            raise ImportError(
+                "to_torch_dataset requires PyTorch; install with `pip install torch`."
+            ) from exc
+
+        if videos is None:
+            videos = self.videos(direction=direction)
+        voxel_mask = self._resolve_mask(roi, mask)
+        subject = self
+
+        class _AOTPerVideoDataset(Dataset):
+            def __len__(self):
+                return len(videos) if average_repeats else len(videos) * 2
+
+            def __getitem__(self, idx):
+                if average_repeats:
+                    v = videos[idx]
+                    rep = None
+                    beta = subject.get_video_betas(
+                        v, direction=direction, mask=voxel_mask,
+                        average_repeats=True,
+                    )
+                else:
+                    v = videos[idx // 2]
+                    rep = idx % 2
+                    both = subject.get_video_betas(
+                        v, direction=direction, mask=voxel_mask,
+                    )
+                    beta = both[rep]
+                sample = {
+                    "video": int(v),
+                    "direction": direction,
+                    "rep": rep,
+                    "betas": torch.from_numpy(beta.astype(dtype)),
+                }
+                if feature_fn is not None:
+                    sample["features"] = feature_fn(v, direction)
+                return sample
+
+        return _AOTPerVideoDataset()
 
     # ------------------------------------------------------------------
     # round-trip back to volume

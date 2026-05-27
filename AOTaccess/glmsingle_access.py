@@ -367,7 +367,58 @@ class GLMSingleAccess:
         R2_mask = R2 > threshold
         R2_mask = R2_mask.astype(bool)
         return R2_mask
-    
+
+    # ------------------------------------------------------------------
+    # generic per-session map reader (any GLMsingle `desc` tag)
+    # ------------------------------------------------------------------
+    def get_session_map_path(self, sub, ses, desc,
+                             glmtype="TYPED_FITHRF_GLMDENOISE_RR",
+                             resolution="2p0mm"):
+        """Path to any per-session GLMsingle map by its ``desc`` tag.
+
+        Use this for the many maps that don't have a dedicated reader —
+        e.g. ``HRFindex``, ``HRFindexrun``, ``FRACvalue``, ``glmbadness``,
+        ``noisepool``, ``pcvoxels``, ``rrbadness``, ``scaleoffset``,
+        ``xvaltrend``, ``FitHRFR2``, ``FitHRFR2run``.
+        """
+        nii_dir = self.get_nii_dir_path(sub, ses, resolution=resolution)
+        return nii_dir / build_per_session_bids_nii(sub, ses, resolution, glmtype, desc)
+
+    def read_session_map(self, sub, ses, desc,
+                         glmtype="TYPED_FITHRF_GLMDENOISE_RR",
+                         resolution="2p0mm"):
+        """Read any per-session GLMsingle map as an ndarray.
+
+        Sibling to :meth:`read_betas` / :meth:`read_R2` / :meth:`read_meanvol`,
+        parameterised by the BIDS ``desc`` tag. See
+        :meth:`list_session_descs` for what's available.
+        """
+        path = self.get_session_map_path(sub, ses, desc, glmtype, resolution)
+        if not path.exists():
+            raise DataNotFoundError(
+                f"GLMsingle session map not found: {path} "
+                f"(sub={sub}, ses={ses}, desc={desc}, glmtype={glmtype}, "
+                f"resolution={resolution})"
+            )
+        return nib.load(path).get_fdata()
+
+    def list_session_descs(self, sub, ses,
+                           glmtype="TYPED_FITHRF_GLMDENOISE_RR",
+                           resolution="2p0mm"):
+        """List GLMsingle ``desc`` tags available for (sub, ses, glmtype, res)."""
+        import re
+        nii_dir = self.get_nii_dir_path(sub, ses, resolution=resolution)
+        if not nii_dir.exists():
+            return []
+        model_entity = MODEL_ENTITY_MAP.get(glmtype, glmtype)
+        pat = re.compile(rf"_model-{re.escape(model_entity)}_desc-(.+?)\.nii\.gz$")
+        descs = set()
+        for f in nii_dir.iterdir():
+            m = pat.search(f.name)
+            if m:
+                descs.add(m.group(1))
+        return sorted(descs)
+
     def get_video_betas_path(
         self,
         sub: int,
@@ -420,7 +471,8 @@ class GLMSingleAccess:
             resolution (str): Resolution, default is "2p0mm".
 
         Returns:
-            numpy.ndarray or None: Array containing the video betas data, or None if the file does not exist.
+            numpy.ndarray: ``(2, X, Y, Z)`` — one volume per repetition of
+            this video. With ``average_repeat=True``, ``(X, Y, Z)``.
         """
         if zscore:
             beta_file = self.get_video_betas_path(

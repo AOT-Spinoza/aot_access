@@ -117,16 +117,7 @@ class ExpDesignAccess:
         )
         return unique_video_indexes
 
-    def get_session_id_from_video_id(sub: int, video_id: int):
-        """
-        (Pending Implementation) Get the session id from a given video id.
-
-        Parameters:
-            sub (int): Subject number.
-            video_id (int): Video id.
-
-        Returns:
-            None: Function pending implementation.
-        """
-        # Implementation pending...
-        pass
+    # `get_session_id_from_video_id` lived here as a broken stub; superseded by
+    # AOTSubject.sessions_for_video which uses events.tsv (the AOT experiment-
+    # design YAMLs aren't readable by all users). AOTAccess.read_session_from_video
+    # delegates to AOTSubject now.

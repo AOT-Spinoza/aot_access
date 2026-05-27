@@ -57,3 +57,15 @@ def test_real_prf_localizer(aot_config):
     assert la.kind("prf") == "parametric"
     assert la.read_map("prf", 1, "ecc").shape == (69, 81, 86)
     assert la.read_map("prf", 1, "noiseceiling").ndim == 3
+
+
+@pytest.mark.cluster
+def test_prf_prep_maps(aot_config):
+    """The pRF prep maps (median/medianpsc timeseries + noisepool) read."""
+    la = LocalizerAccess(config=aot_config)
+    median = la.read_map("prf", 1, "median")              # 4-D timeseries
+    medianpsc = la.read_map("prf", 1, "medianpsc")        # 4-D timeseries
+    noisepool = la.read_map("prf", 1, "noisepool")        # 3-D mask
+    assert median.ndim == 4 and median.shape[:3] == (69, 81, 86)
+    assert medianpsc.ndim == 4 and medianpsc.shape[:3] == (69, 81, 86)
+    assert noisepool.ndim == 3 and noisepool.shape == (69, 81, 86)

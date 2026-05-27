@@ -57,3 +57,44 @@ def test_real_mask_on_epi_grid(aot_config):
     )
     assert mask.shape == (69, 81, 86)
     assert mask.sum() > 0
+
+
+@pytest.mark.cluster
+def test_read_group_majority(aot_config):
+    r = ROIAccess(config=aot_config)
+    m = r.read_group_majority("V1v", hemi="L", atlas="wang_2015")
+    assert m.dtype == bool
+    assert m.sum() > 0
+
+
+@pytest.mark.cluster
+def test_read_group_fsaverage_probseg(aot_config):
+    r = ROIAccess(config=aot_config)
+    p = r.read_group_fsaverage_probseg("V1v", hemi="L", atlas="wang_2015")
+    # gifti agg_data returns a 1-D ndarray of per-vertex floats
+    assert p.ndim == 1 and p.size > 0
+
+
+@pytest.mark.cluster
+def test_group_fsaverage_mpm_path(aot_config):
+    r = ROIAccess(config=aot_config)
+    p = r.group_fsaverage_mpm_path(hemi="L", atlas="wang_2015")
+    assert p.exists()
+    assert p.suffix == ".annot"
+
+
+@pytest.mark.cluster
+def test_cifti_dlabel(aot_config):
+    r = ROIAccess(config=aot_config)
+    p32 = r.cifti_dlabel_path(atlas="wang_2015", den="32k")
+    p170 = r.cifti_dlabel_path(atlas="wang_2015", den="170k")
+    assert p32.exists() and p170.exists()
+    img = r.read_cifti_dlabel(atlas="wang_2015", den="32k")
+    assert img.shape[0] >= 1
+
+
+def test_cifti_dlabel_rejects_bad_density(aot_config):
+    pytest.importorskip("nibabel")
+    r = ROIAccess(config=aot_config)
+    with pytest.raises(ValueError):
+        r.cifti_dlabel_path(atlas="wang_2015", den="64k")
