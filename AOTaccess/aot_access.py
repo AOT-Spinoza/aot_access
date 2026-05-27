@@ -1,44 +1,43 @@
-import AOTaccess
-from pathlib import Path
-import sys
-import os
-import yaml
-import nibabel as nib
-
+from AOTaccess.config import Config
 from AOTaccess.glmsingle_access import GLMSingleAccess
 from AOTaccess.expdesign_access import ExpDesignAccess
 from AOTaccess.stimulus_info_access import StimuliInfoAccess
 from AOTaccess.bids_access import BidsAccess
 from AOTaccess.memoryscore_access import MemoryScoreAccess
 from AOTaccess.preproced_access import PreprocedAccess
+from AOTaccess.roi_access import ROIAccess
 
 
 class AOTAccess:
-    def __init__(self, root_path):
-        self.basedir = Path(__file__).resolve().parent
-        self.settings = yaml.safe_load(open(self.basedir / "settings.yml"))
-        self.glmsingle_access = GLMSingleAccess(root_dir=root_path)
-        self.expdesign_access = ExpDesignAccess(root_dir=root_path)
-        self.stimuli_info_access = StimuliInfoAccess(root_dir=root_path)
-        self.bids_access = BidsAccess(root_dir=root_path)
-        self.memoryscore_access = MemoryScoreAccess(root_dir=root_path)
-        self.preproced_access = PreprocedAccess(root_dir=root_path)
+    """Facade over the per-domain access classes.
 
+    All sub-accessors share one Config, so a single ``root_dir`` (or the
+    default settings.yml) configures the whole API.
+    """
+
+    def __init__(self, root_path=None, config=None):
+        """Initialize the facade.
+
+        Parameters:
+            root_path: If given, resolve every store relative to this dataset
+                root. Otherwise paths come from settings.yml.
+            config (Config): An explicit Config; takes precedence over root_path.
+        """
+        self.config = config if config is not None else Config(root_dir=root_path)
+        self.glmsingle_access = GLMSingleAccess(config=self.config)
+        self.expdesign_access = ExpDesignAccess(config=self.config)
+        self.stimuli_info_access = StimuliInfoAccess(config=self.config)
+        self.bids_access = BidsAccess(config=self.config)
+        self.memoryscore_access = MemoryScoreAccess(config=self.config)
+        self.preproced_access = PreprocedAccess(config=self.config)
+        self.roi_access = ROIAccess(config=self.config)
         self.root_path = root_path
-        """
-        data dir structure:
 
-        Root path
-            Fw rv video betas folder
-            Glmginle output raw folder
-            Preproced folder
-            Bids folder
-            expdesign folder
-            Raw data folder
-            video folder
-            video annotations folder
-
-        """
+    def subject(self, sub):
+        """A per-subject access object (AOTSubject)."""
+        # imported here to keep top-level imports light (pandas dependency)
+        from AOTaccess.subject import AOTSubject
+        return AOTSubject(sub, config=self.config, glmtype="TYPED_FITHRF_GLMDENOISE_RR")
 
     def read_affine_header(self, sub: int):
         """
@@ -48,7 +47,7 @@ class AOTAccess:
         header = self.glmsingle_access.read_header(sub)
         return affine, header
 
-    def read_meanvol_from_session(self, sub: int, ses: int, resolution: str = "1p7mm"):
+    def read_meanvol_from_session(self, sub: int, ses: int, resolution: str = "2p0mm"):
         """
         Read mean volume data for a session.
         """
@@ -61,7 +60,7 @@ class AOTAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1p7mm",
+        resolution: str = "2p0mm",
     ):
         """
         Read beta values for a session.
@@ -76,7 +75,7 @@ class AOTAccess:
         video: int,
         direction: str = "fw",
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1p7mm",
+        resolution: str = "2p0mm",
     ):
         """
         Read beta values for a specific video.
@@ -94,7 +93,7 @@ class AOTAccess:
         sub: int,
         ses: int,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1p7mm",
+        resolution: str = "2p0mm",
     ):
         """
         Read R2 values for a session.
@@ -109,7 +108,7 @@ class AOTAccess:
         ses: int,
         threshold: float = 0.2,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
-        resolution: str = "1p7mm",
+        resolution: str = "2p0mm",
     ):
         """
         Read R2 mask for a session with given threshold.
@@ -128,14 +127,16 @@ class AOTAccess:
         """
         return self.expdesign_access.get_session_uniqe_video_indexes(sub, ses)
 
-    def read_session_from_video(self, sub: int, video: int):
+    def read_session_from_video(self, sub: int, video: int, direction: str = None):
+        """Sessions where a video appears in the subject's main-task design.
+
+        Returns a sorted list of session ids. Delegates to
+        :meth:`AOTaccess.subject.AOTSubject.sessions_for_video`.
         """
-        Get session number for a given video.
-        """
-        return self.expdesign_access.get_session_id_from_video_id(sub, video)
+        return self.subject(sub).sessions_for_video(video, direction=direction)
 
     def read_preproced_bold_from_session(
-        self, sub: int, ses: int, run: int, resolution: str = "1p7mm"
+        self, sub: int, ses: int, run: int, resolution: str = "2p0mm"
     ):
         """
         Read preprocessed BOLD data for a session.
@@ -143,3 +144,59 @@ class AOTAccess:
         return self.preproced_access.read_func(
             sub=sub, ses=ses, run=run, resolution=resolution
         )
+
+    def read_roi_mask(
+        self,
+        sub: int,
+        roi: str,
+        atlas: str = "wang_2015",
+        resolution: str = "2p0mm",
+        cons: str = "balanced",
+        hemi: str = None,
+    ):
+        """
+        Read a boolean ROI mask on the EPI grid.
+
+        The mask comes from the ROI library's fsnative volume space, which is
+        the same voxel grid as the GLMsingle betas and preprocessed BOLD at the
+        matching resolution, so it indexes those arrays directly.
+        """
+        return self.roi_access.read_mask(
+            sub=sub,
+            roi=roi,
+            atlas=atlas,
+            space="T1w",
+            res=resolution,
+            cons=cons,
+            hemi=hemi,
+        )
+
+    def extract_betas_in_roi(
+        self,
+        sub: int,
+        ses: int,
+        roi: str,
+        atlas: str = "wang_2015",
+        cons: str = "balanced",
+        hemi: str = None,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "2p0mm",
+    ):
+        """
+        Read per-session GLMsingle betas restricted to an ROI.
+
+        Returns an (n_voxels, n_trials) array: the ROI mask applied to the
+        session betas volume. The ROI mask (fsnative volume) and the betas
+        share the EPI voxel grid at the same resolution.
+        """
+        betas = self.glmsingle_access.read_betas(
+            sub=sub, ses=ses, glmtype=glmtype, resolution=resolution
+        )
+        mask = self.read_roi_mask(sub, roi, atlas, resolution, cons, hemi)
+        if mask.shape != betas.shape[:3]:
+            raise ValueError(
+                f"ROI mask shape {mask.shape} does not match the betas grid "
+                f"{betas.shape[:3]} — check that resolution='{resolution}' "
+                f"matches between the ROI and GLMsingle outputs."
+            )
+        return betas[mask]

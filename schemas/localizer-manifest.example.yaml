@@ -1,0 +1,68 @@
+# Schema-by-example for a localizer manifest, using the pRF localizer.
+#
+# `LocalizerAccess` consumes one of these per localizer, at
+# `derivatives/localizers/<name>/manifest.yaml`. Each localizer's pipeline owns
+# its manifest (localizers are diverse — manifests are kept separate). The live
+# pRF manifest is `derivatives/localizers/prf/manifest.yaml`; this file
+# documents the structure for the fLOC and duration-mapper localizers to come.
+#
+# All `path_templates` are relative to `derivatives/localizers/<localizer>/`.
+
+manifest_schema_version: 1.0.0
+localizer: prf                         # matches the folder name under localizers/
+kind: parametric                       # 'parametric' (model-fit maps) | 'contrast' (GLM stat maps)
+description: Population receptive field mapping (prfpy model fits).
+session: ses-pRF
+
+subjects:                              # subjects this localizer has been run for
+  - sub-001
+  - sub-002
+  - sub-003
+  - sub-004
+  - sub-007
+
+# Default values for the free path-template parameters; a caller overrides any
+# of these per call. Every localizer carries its own sensible defaults.
+defaults:
+  model: gauss
+  resolution: 2p0mm
+  runpart: all
+  rec: nordicstc
+
+# Fit models (parametric localizers only). A 'contrast' localizer omits this.
+models:
+  gauss:
+    full_name: 2D Gaussian pRF
+  norm:
+    full_name: Divisive-normalization pRF
+
+# Result maps. `models` lists which fit models produce each map (an empty/absent
+# `models` means model-independent). `template` names the path_templates entry;
+# the map name fills its `{map}` placeholder and is the on-disk filename suffix.
+maps:
+  r2:        {full_name: variance explained,      models: [gauss, norm], template: param_map}
+  ecc:       {full_name: eccentricity,            models: [gauss, norm], template: param_map}
+  polar:     {full_name: polar angle,             models: [gauss, norm], template: param_map}
+  prf_size:  {full_name: pRF size,                models: [gauss, norm], template: param_map}
+  prf_ampl:  {full_name: pRF amplitude,           models: [gauss, norm], template: param_map}
+  bold_bsl:  {full_name: BOLD baseline,           models: [gauss, norm], template: param_map}
+  x:         {full_name: pRF centre x,            models: [gauss, norm], template: param_map}
+  y:         {full_name: pRF centre y,            models: [gauss, norm], template: param_map}
+  hrf_deriv: {full_name: HRF derivative,          models: [gauss],       template: param_map}
+  hrf_dsip:  {full_name: HRF dispersion,          models: [gauss],       template: param_map}
+  hrf_delay: {full_name: HRF delay,               models: [norm],        template: param_map}
+  hrf_disp:  {full_name: HRF dispersion,          models: [norm],        template: param_map}
+  BDratio:   {full_name: normalization B/D ratio, models: [norm],        template: param_map}
+  surr_ampl: {full_name: surround amplitude,      models: [norm],        template: param_map}
+  surr_bsl:  {full_name: surround baseline,       models: [norm],        template: param_map}
+  surr_size: {full_name: surround size,           models: [norm],        template: param_map}
+  neur_bsl:  {full_name: neural baseline,         models: [norm],        template: param_map}
+  noiseceiling: {full_name: split-half noise ceiling, models: [], template: noiseceiling}
+
+path_templates:
+  param_map:
+    template: sub-{sub}/prf_fits/params/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-T1w_res-{resolution}_desc-prf_params_{map}.nii.gz
+    parameters: [sub, map, model, resolution, runpart, rec]
+  noiseceiling:
+    template: sub-{sub}/prep/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-noiseceiling_part-mag_bold_space-T1w_res-{resolution}.nii.gz
+    parameters: [sub, resolution, rec]

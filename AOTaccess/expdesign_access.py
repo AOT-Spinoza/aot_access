@@ -1,31 +1,19 @@
-import AOTaccess
-from pathlib import Path
-import sys
-import os
 import yaml
+
+from AOTaccess.config import Config
 
 
 class ExpDesignAccess:
-    def __init__(self, root_dir: Path = None):
-        """
-        Initialize the ExpDesignAccess instance.
-
-        Loads the experiment design directory and run number from the settings.
+    def __init__(self, root_dir=None, config=None):
+        """Initialize the ExpDesignAccess instance.
 
         Parameters:
-            None
-
-        Returns:
-            None
+            root_dir: If given, resolve paths relative to this dataset root.
+            config (Config): An explicit Config; takes precedence over root_dir.
         """
-        if root_dir is not None:
-            self.root_expdesign_dir = root_dir / "aot/data/experiment/settings/main"
-            self.run_number = 10
-        else:
-            basedir = Path(__file__).resolve().parent
-            settings = yaml.safe_load(open(basedir / "settings.yml"))
-            self.root_expdesign_dir = Path(settings["paths"]["AOTdesignsettings"])
-            self.run_number = settings["parameters"]["run_number"]
+        self.config = config if config is not None else Config(root_dir=root_dir)
+        self.root_expdesign_dir = self.config.path("AOTdesignsettings")
+        self.run_number = self.config.param("run_number", 10)
 
     def read_expdesign_file(self, sub: int, ses: int, run: int):
         """
@@ -129,16 +117,7 @@ class ExpDesignAccess:
         )
         return unique_video_indexes
 
-    def get_session_id_from_video_id(sub: int, video_id: int):
-        """
-        (Pending Implementation) Get the session id from a given video id.
-
-        Parameters:
-            sub (int): Subject number.
-            video_id (int): Video id.
-
-        Returns:
-            None: Function pending implementation.
-        """
-        # Implementation pending...
-        pass
+    # `get_session_id_from_video_id` lived here as a broken stub; superseded by
+    # AOTSubject.sessions_for_video which uses events.tsv (the AOT experiment-
+    # design YAMLs aren't readable by all users). AOTAccess.read_session_from_video
+    # delegates to AOTSubject now.

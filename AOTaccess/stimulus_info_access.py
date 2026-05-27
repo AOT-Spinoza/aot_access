@@ -1,37 +1,145 @@
-import AOTaccess
 from pathlib import Path
-import sys
-import os
-import yaml
 import numpy as np
+import pandas as pd
+import yaml
 import h5py
 import csv
 import json
-import torch
+
+from AOTaccess.config import Config
+from AOTaccess.errors import DataNotFoundError
+
+# NOTE: `torch` is imported lazily inside the `_temp_*` methods that need it,
+# so the rest of the API stays importable without that heavy dependency.
 
 
 class StimuliInfoAccess:
-    def __init__(self, root_dir: Path = None):
-        """
-        Initialize the StimuliInfoAccess instance.
-
-        Loads video and video annotation directories from the settings.
+    def __init__(self, root_dir=None, config=None):
+        """Initialize the StimuliInfoAccess instance.
 
         Parameters:
-            None
-
-        Returns:
-            None
+            root_dir: If given, resolve paths relative to this dataset root.
+            config (Config): An explicit Config; takes precedence over root_dir.
         """
-        if root_dir is not None:
-            self.video_dir = root_dir / "videos"
-            self.video_annotation_dir = root_dir / "video_annotations"
-        else:
-            basedir = Path(__file__).resolve().parent
-            settings = yaml.safe_load(open(basedir / "settings.yml"))
-            self.video_dir = Path(settings["paths"]["videos"])
-            self.picture_dir = Path(settings["paths"]["pictures"])
-            self.video_annotation_dir = Path(settings["paths"]["video_annotations"])
+        self.config = config if config is not None else Config(root_dir=root_dir)
+        self.video_dir = self.config.path("videos")
+        self.picture_dir = self.config.path("pictures")
+        self.video_annotation_dir = self.config.path("video_annotations")
+        # Lazy caches for the bulky cross-video annotation files.
+        self._online_behavior = None
+        self._moten_filter_info = {}
+
+    # ------------------------------------------------------------------
+    # cross-video annotations manifest
+    # ------------------------------------------------------------------
+    def annotations_manifest_dir(self):
+        """Path to the cross-video annotations manifest folder.
+
+        Holds the condensed online-behavior table, pymoten filter-bank
+        metadata, and per-annotation-pipeline descriptions (qwen, …).
+        """
+        return self.video_annotation_dir / "manifest"
+
+    def read_online_behavior_table(self, video=None, direction=None):
+        """The condensed per-video online-behavior table.
+
+        Returns a :class:`pandas.DataFrame` with one row per (video,
+        direction) — identifiability score (+ CI), direction accuracy
+        (raw and quality-weighted), mean confidence and RT, decile, and a
+        ``yaml_path`` pointing at the per-video detail file (see
+        :meth:`read_video_behavior`). Cached after the first load.
+
+        Parameters:
+            video (int): Filter to one ``source_id``.
+            direction (str): Filter to one direction (``"fw"`` / ``"rv"``).
+        """
+        if self._online_behavior is None:
+            path = self.annotations_manifest_dir() / "online_behavior.tsv"
+            if not path.exists():
+                raise DataNotFoundError(
+                    f"Online-behavior table not found: {path}"
+                )
+            self._online_behavior = pd.read_csv(path, sep="\t")
+        df = self._online_behavior
+        if video is not None:
+            df = df[df.source_id == int(video)]
+        if direction is not None:
+            mapped = {"fw": "forward", "rv": "backward"}.get(direction, direction)
+            df = df[df.direction == mapped]
+        return df.reset_index(drop=True)
+
+    def read_video_behavior(self, video_id: int, direction: str = "fw"):
+        """The detailed per-video online-behavior YAML.
+
+        Returns a dict with ``video``, ``summary``, ``source_context`` and
+        ``responses`` — one entry per online subject (response direction,
+        confidence, RTs, subject quality weight, included flag, …).
+        """
+        path = (
+            self.get_video_annotation_dir(video_id, direction)
+            / "behavior"
+            / "online_behavior.yaml"
+        )
+        if not path.exists():
+            raise DataNotFoundError(
+                f"Per-video behavior YAML not found: {path}"
+            )
+        with open(path) as f:
+            return yaml.safe_load(f)
+
+    def read_qwen_description_meta(self):
+        """Metadata about the qwen_description annotation pipeline."""
+        return self._read_manifest_yaml("qwen_description.yml")
+
+    def read_qwen_embedding_meta(self):
+        """Metadata about the qwen_embedding annotation pipeline."""
+        return self._read_manifest_yaml("qwen_embedding.yml")
+
+    def read_moten_filter_info(self, highest_freq: int = 32):
+        """Pymoten filter-bank info for the given max spatial frequency.
+
+        Returns a dict with ``meta`` (filter-bank parameters; ``n_filters``
+        is the channel count of the motion-energy NPYs), ``dva_alignment``
+        (image-to-degrees mapping), and ``filters`` — one dict per filter,
+        with its centre, spatial/temporal frequency, direction, envelope
+        and pRF-aligned coordinates (x_dva, y_dva, eccentricity, polar
+        angle). Cached after the first load (the YAML is large —
+        ~38 k lines for 16-Hz, ~178 k for 32-Hz).
+
+        Parameters:
+            highest_freq (int): 16 or 32 — matches
+                :meth:`read_motion_energy_features`.
+        """
+        if highest_freq not in (16, 32):
+            raise ValueError(
+                f"highest_freq must be 16 or 32; got {highest_freq!r}"
+            )
+        if highest_freq not in self._moten_filter_info:
+            path = self.annotations_manifest_dir() / f"moten_filter_info_{highest_freq}.yml"
+            if not path.exists():
+                raise DataNotFoundError(
+                    f"Pymoten filter info not found: {path}"
+                )
+            with open(path) as f:
+                self._moten_filter_info[highest_freq] = yaml.safe_load(f)
+        return self._moten_filter_info[highest_freq]
+
+    def available_annotations(self, video_id: int, direction: str = "fw"):
+        """Annotation kinds available for one (video, direction)."""
+        d = self.get_video_annotation_dir(video_id, direction)
+        if not d.exists():
+            return []
+        return sorted(p.name for p in d.iterdir() if p.is_dir())
+
+    def _read_manifest_yaml(self, name):
+        """Load one YAML from the annotations manifest folder."""
+        path = self.annotations_manifest_dir() / name
+        if not path.exists():
+            raise DataNotFoundError(
+                f"Annotations manifest file not found: {path}"
+            )
+        with open(path) as f:
+            return yaml.safe_load(f)
 
     def get_video_path(self, video_id: int, direction: str = "fw"):
         """
@@ -73,25 +181,6 @@ class StimuliInfoAccess:
         """
         return self.video_annotation_dir / f"{video_id:04d}_{direction}.mp4"
     
-    def _temp_read_qwen_description(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily read the Qwen description text for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            str: Content of the description text file.
-        """
-        # example : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
-        temp_root_dir = Path(
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_describe/videos_fw_describe_qwen_pure"
-        )
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
-        with open(temp_file, "r") as f:
-            return f.read()
-
     def read_qwen_description(self, video_id: int, direction: str = "fw"):
         """
         Read and return the Qwen description text for a video.
@@ -112,41 +201,6 @@ class StimuliInfoAccess:
         with open(filepath, "r") as f:
             return f.read()
          
-    def _temp_read_qwen_embedding(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily read the Qwen embedding for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            dict: Content of the embedding JSON file.
-        """
-        # example :  "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048/0001_fw_embedding.json"
-
-        temp_root_dir1 = Path(
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
-        )
-        temp_root_dir2 = Path(
-            "/projects/prjs1914/output/qwen_embedding/videos_fw_describe_qwen_pure_embedding_2048"
-        )
-
-        if temp_root_dir1.exists():
-            temp_root_dir = temp_root_dir1
-        elif temp_root_dir2.exists():
-            temp_root_dir = temp_root_dir2
-        else:
-            raise FileNotFoundError(f"Qwen embedding file not found: {temp_root_dir1} or {temp_root_dir2}")
-
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}_embedding.json"
-        with open(temp_file, "r") as f:
-            data = json.load(f)
-        embedding = data["data"][0]["embedding"]
-        #make is numpy array
-        embedding = np.array(embedding)
-        return embedding
-
     def read_qwen_embedding(self, video_id: int, direction: str = "fw"):
         """
         Read and return the Qwen embedding for a video.
@@ -169,62 +223,6 @@ class StimuliInfoAccess:
         embedding = data["data"][0]["embedding"]
         return np.array(embedding)
 
-
-    def _temp_read_llama_description(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily read the llama description text for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            str: Content of the description text file.
-        """
-        # example : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
-        temp_root_dir = Path(
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean"
-        )
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
-        with open(temp_file, "r") as f:
-            return f.read()
-
-    def _temp_read_llama_description_v2(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily read the version 2 llama description text for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            str: Content of the description text file.
-        """
-        # example : /research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/simple_describe_en_clean/0001_fw.txt
-        temp_root_dir = Path(
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/videollama_describe/withsample_t0.2_r1_v2.1"
-        )
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.txt"
-        with open(temp_file, "r") as f:
-            return f.read()
-
-    def _temp_read_sbert_embeddings(self, video_id: int, direction: str = "fw"):
-        """
-        Temporarily load SBERT embeddings for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            numpy.ndarray: Loaded SBERT embeddings.
-        """
-        temp_root_dir = Path(
-            # "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert/simple_describe_en_clean_embeddings"
-            "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/DLoutputs/sbert_all-mpnet-base-v2/simple_describe_en_withsample_cleaned_embeddings_averaged"
-        )
-        temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
-        return np.load(temp_file)
 
     def read_sbert_embeddings(self, video_id: int, direction: str = "fw"):
         """
@@ -279,42 +277,6 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
 
-    def _temp_read_motion_energy_features(
-        self, video_id: int, direction: str = "fw", highest_freq=32
-    ):
-        """
-        Temporarily load motion energy features for a video.
-
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-
-        Returns:
-            numpy.ndarray: Loaded motion energy features.
-        """
-        if highest_freq == 16:
-            temp_root_dir = Path(
-                "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/temp/motion_energy_features/video_features"
-            )
-            temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
-            return np.load(temp_file)
-        elif highest_freq == 32:
-            temp_root_dir1 = Path(
-                "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/temp/motion_freq_test[0,2,4,8,16,32]"
-            )
-            temp_root_dir2 = Path(
-                "/projects/prjs1914/output/motion_freq_test[0,2,4,8,16,32]"  
-            )
-
-            if temp_root_dir1.exists():
-                temp_root_dir = temp_root_dir1
-            elif temp_root_dir2.exists():
-                temp_root_dir = temp_root_dir2
-            else:
-                raise FileNotFoundError(f"Motion energy features file not found: {temp_root_dir1} or {temp_root_dir2}")
-            temp_file = temp_root_dir / f"{video_id:04d}_{direction}.mp4.npy"
-            return np.load(temp_file)
-
     def read_motion_energy_features(
         self, video_id: int, direction: str = "fw", highest_freq: int = 32
     ):
@@ -338,6 +300,8 @@ class StimuliInfoAccess:
         return np.load(filepath)
 
     def _temp_load_vae_latent(self, latent_file: Path, kind: str = "VAE"):
+        import torch
+
         if not latent_file.exists():
             raise FileNotFoundError(f"{kind} latent file not found: {latent_file}")
 
@@ -467,6 +431,8 @@ class StimuliInfoAccess:
         )
 
     def _temp_load_hunyuan_text_encoder_artifacts(self, artifact_file: Path):
+        import torch
+
         if not artifact_file.exists():
             raise FileNotFoundError(
                 f"Hunyuan text encoder artifact file not found: {artifact_file}"
@@ -485,6 +451,8 @@ class StimuliInfoAccess:
         return payload
 
     def _temp_extract_hunyuan_prompt_embeds(self, payload: dict, encoder_key: str, artifact_file: Path):
+        import torch
+
         pipeline_inputs = payload.get("pipeline_inputs")
         if not isinstance(pipeline_inputs, dict):
             raise KeyError(
