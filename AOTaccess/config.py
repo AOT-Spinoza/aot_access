@@ -33,7 +33,7 @@ _RELATIVE_LAYOUT = {
     "video_annotations": "derivatives/stimuli/annotations",
     "roi": "derivatives/roi",
     "localizers": "derivatives/localizers",
-    "AOTdesignsettings": "code/arrow_of_time_experiment/aot/data/experiment/settings/main",
+    "AOTdesignsettings": "aot/data/experiment/settings/main",
 }
 
 # Anatomy roots tried in order — dual-cluster (VU /research, Snellius /projects).
