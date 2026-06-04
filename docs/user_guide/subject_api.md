@@ -40,6 +40,10 @@ Pass `config=Config(...)` to override the data root or the settings file.
 * - {meth}`~AOTaccess.subject.AOTSubject.get_n_voxels`
   - `int`
   - voxels in the brain mask
+* - {meth}`~AOTaccess.subject.AOTSubject.get_gray_matter_mask`
+  - `np.ndarray[bool | float]`
+  - FreeSurfer cortex GM mask at the subject's resolution — bool for
+    `"cortex"` / `"cortex_dil"`, float for `"cortex_sm"` (soft mask)
 * - `affine` / `header`
   - `np.ndarray` / `nib.Nifti1Header`
   - subject-native (T1w) at `resolution`

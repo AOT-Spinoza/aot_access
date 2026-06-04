@@ -21,6 +21,42 @@ Default derivation: voxels where the GLMsingle R² map is **finite and > 0**
 in `ses=1`. Anatomy is constant across sessions; the reference session only
 affects which voxels GLMsingle flagged as informative.
 
+## Gray-matter mask — a tighter working set
+
+For encoding-model work it's often more natural to fit on cortex gray
+matter rather than the GLMsingle-derived brain mask. The FreeSurfer
+cortex GM masks live in `anat-3T/<sub>/fiducial/res-<XpXmm>/` and share
+the EPI grid affine — they drop in as a voxel selector with no
+resampling.
+
+```python
+gm = sub.get_gray_matter_mask()                    # bool, ~60 k voxels at 2 mm
+dil = sub.get_gray_matter_mask("cortex_dil")       # bool, ~100 k (dilated)
+soft = sub.get_gray_matter_mask("cortex_sm")       # float in [0, 1], ~160 k > 0
+```
+
+Three variants; the return type follows the variant:
+
+| variant | dtype | voxels (sub-001, 2p0mm) | notes |
+|---|---|---|---|
+| `"cortex"` (default) | `bool` | ~61 k | canonical FreeSurfer cortex GM |
+| `"cortex_dil"` | `bool` | ~98 k | dilated — broader, includes some non-GM |
+| `"cortex_sm"` | `float` in [0, 1] | ~163 k > 0 | smoothed soft mask |
+
+Use it as a custom `mask=` on any voxel-valued method. The selector is
+intersected with the brain mask, so any non-brain voxels in the GM mask
+are dropped automatically:
+
+```python
+betas_gm = sub.get_betas(ses=1, mask=sub.get_gray_matter_mask())
+betas_gm.shape    # (n_trials, n_gm ∩ brain_voxels)
+
+# For the soft mask, threshold yourself before passing:
+betas_soft = sub.get_betas(ses=1, mask=(sub.get_gray_matter_mask("cortex_sm") > 0.5))
+```
+
+Each `(variant)` is cached on the `AOTSubject` instance.
+
 ## Flat voxels
 
 The brain mask defines the working voxel set. Every `get_*` call that

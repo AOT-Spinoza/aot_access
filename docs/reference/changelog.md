@@ -8,6 +8,13 @@ Maintained per release. Currently pre-release; see the git log on the
 
 ## Unreleased
 
+- FreeSurfer cortex gray-matter masks via
+  {meth}`~AOTaccess.anatomy_access.AnatomyAccess.read_gray_matter_mask` and
+  {meth}`~AOTaccess.subject.AOTSubject.get_gray_matter_mask`. Three
+  variants (`"cortex"`, `"cortex_dil"`, `"cortex_sm"`); return type follows
+  the variant (bool for binary, float for soft). Shares the affine with
+  `space-T1w_res-XpXmm` derivatives, so it slots into `mask=` on every
+  voxel-valued method without resampling.
 - BIDS-compliant filename conventions adopted across the dataset:
   `space-T1w` / `space-MNI` for volumes (paired with `res-1p25mm` /
   `res-2p0mm`), `space-fsnative` / `space-fsaverage` reserved for

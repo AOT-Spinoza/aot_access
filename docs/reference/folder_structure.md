@@ -89,8 +89,15 @@ annotations/NNNN_{fw,rv}.mp4/
 
 ```text
 sub-XXX/fiducial/res-XpXmm/
-  sub-XXX_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz   # the canonical T1w reference at this EPI grid
+  sub-XXX_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz   # canonical T1w reference at this EPI grid
   sub-XXX_ses-3Tanat_T2w_brain_T2BM_crop_resampled.nii.gz
-  sub-XXX_FScortexGM_T2BM_crop_resampled.nii.gz
+  sub-XXX_FScortexGM_T2BM_crop_resampled.nii.gz          # FreeSurfer cortex GM mask (binary)
+  sub-XXX_FScortexGM_dil_T2BM_crop_resampled.nii.gz      # dilated (binary)
+  sub-XXX_FScortexGM_sm_T2BM_crop_resampled.nii.gz       # smoothed soft mask (float [0,1])
   ...
 ```
+
+The GM masks share the affine of `space-T1w_res-XpXmm` derivatives, so
+they can be used directly as voxel selectors; access via
+{meth}`~AOTaccess.subject.AOTSubject.get_gray_matter_mask` or
+{meth}`~AOTaccess.anatomy_access.AnatomyAccess.read_gray_matter_mask`.
