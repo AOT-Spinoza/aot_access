@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 from AOTaccess import discovery
+from AOTaccess.anatomy_access import AnatomyAccess
 from AOTaccess.bids_access import BidsAccess
 from AOTaccess.brain import compute_brain_mask, get_voxel_coordinates, to_nifti
 from AOTaccess.config import Config
@@ -53,11 +54,13 @@ class AOTSubject:
         self.roi = ROIAccess(config=self.config)
         self.expdesign = ExpDesignAccess(config=self.config)
         self.preproced = PreprocedAccess(config=self.config)
+        self.anatomy = AnatomyAccess(config=self.config)
         # Lazy caches.
         self._brain_mask = None
         self._affine = None
         self._header = None
         self._trial_table = None
+        self._gm_mask_cache = {}                # keyed by variant
 
     # ------------------------------------------------------------------
     # discovery (subject-scoped)
@@ -92,6 +95,28 @@ class AOTSubject:
     def get_n_voxels(self):
         """Number of voxels in the brain mask."""
         return int(self.get_brain_mask().sum())
+
+    def get_gray_matter_mask(self, variant="cortex"):
+        """Cortex gray-matter mask on the subject's EPI grid.
+
+        Reads the FreeSurfer cortex GM mask from
+        ``anat-3T/<sub>/fiducial/res-{self.resolution}/...``. Return type
+        follows the variant — boolean for the binary masks
+        (``"cortex"``, ~60 k voxels; ``"cortex_dil"``, ~100 k) and float
+        in ``[0, 1]`` for the smoothed soft mask (``"cortex_sm"``;
+        threshold yourself before passing to a ``mask=`` selector).
+        Cached per variant.
+
+        The mask shares the EPI grid affine, so it drops in as a custom
+        ``mask=`` on the voxel-valued methods:
+
+        >>> betas = sub.get_betas(ses=1, mask=sub.get_gray_matter_mask())
+        """
+        if variant not in self._gm_mask_cache:
+            self._gm_mask_cache[variant] = self.anatomy.read_gray_matter_mask(
+                self.sub, resolution=self.resolution, variant=variant,
+            )
+        return self._gm_mask_cache[variant]
 
     @property
     def affine(self):

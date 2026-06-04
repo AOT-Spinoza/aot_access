@@ -148,6 +148,42 @@ def test_read_glmsingle_output_and_listing(sub1):
 
 
 @pytest.mark.cluster
+def test_get_gray_matter_mask_binary_variant(sub1):
+    """Binary variants return bool and slot into mask= cleanly."""
+    gm = sub1.get_gray_matter_mask()                # cortex, bool
+    assert gm.dtype == bool
+    assert gm.shape == sub1.get_brain_mask().shape
+    # Cortex GM is in the 30k-200k range across subjects/resolutions.
+    assert 30_000 < int(gm.sum()) < 200_000
+    # Passes as a custom mask on the betas pipeline:
+    betas = sub1.get_betas(ses=1, mask=gm)
+    expected_vox = int((gm & sub1.get_brain_mask()).sum())
+    assert betas.shape == (720, expected_vox)
+
+
+@pytest.mark.cluster
+def test_get_gray_matter_mask_sm_returns_float(sub1):
+    """Soft variant returns float — user thresholds before passing as mask."""
+    sm = sub1.get_gray_matter_mask(variant="cortex_sm")
+    assert sm.dtype != bool
+    assert 0.0 <= sm.min() and sm.max() <= 1.0
+    # Thresholding yourself is one line and goes through `mask=`.
+    betas = sub1.get_betas(ses=1, mask=(sm > 0.5))
+    assert betas.shape[0] == 720 and betas.shape[1] > 0
+
+
+@pytest.mark.cluster
+def test_get_gray_matter_mask_variants_cached(sub1):
+    """Each variant is cached; identity holds across repeat calls."""
+    a = sub1.get_gray_matter_mask(variant="cortex")
+    b = sub1.get_gray_matter_mask(variant="cortex")
+    assert a is b                                    # cached
+    c = sub1.get_gray_matter_mask(variant="cortex_dil")
+    assert c is not a
+    assert int(c.sum()) > int(a.sum())               # dilated is larger
+
+
+@pytest.mark.cluster
 def test_to_torch_dataset(sub1):
     torch = pytest.importorskip("torch")
     ds = sub1.to_torch_dataset(direction="fw", roi="V1v", videos=[1, 2, 3])
