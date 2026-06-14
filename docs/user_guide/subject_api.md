@@ -13,9 +13,17 @@ from AOTaccess.subject import AOTSubject
 sub = AOTSubject(1)                          # default 2 mm, TYPED_FITHRF_GLMDENOISE_RR
 sub = AOTSubject(1, resolution="1p25mm")
 sub = AOTSubject("sub-001", resolution="2p0mm")
+
+# Pick the working set explicitly (see brain_mask_and_flat_voxels):
+sub = AOTSubject(1, default_mask="ncsnr")    # data-driven signal mask
+sub = AOTSubject(1, default_mask="cortex")   # canonical (undilated) GM
 ```
 
-Pass `config=Config(...)` to override the data root or the settings file.
+The default working set is the dilated FreeSurfer cortex GM mask
+(`default_mask="cortex_dil"`); see
+{doc}`brain_mask_and_flat_voxels` for the other choices and when to pick
+each. Pass `config=Config(...)` to override the data root or the
+settings file.
 
 ## What's on the subject
 
@@ -36,7 +44,8 @@ Pass `config=Config(...)` to override the data root or the settings file.
   - unique video ids with per-video betas
 * - {meth}`~AOTaccess.subject.AOTSubject.get_brain_mask`
   - `np.ndarray[bool]`
-  - 3-D mask, derived from GLMsingle R² > 0
+  - 3-D mask implied by `default_mask`; the default is the dilated
+    FreeSurfer cortex GM (`"cortex_dil"`)
 * - {meth}`~AOTaccess.subject.AOTSubject.get_n_voxels`
   - `int`
   - voxels in the brain mask
@@ -44,6 +53,14 @@ Pass `config=Config(...)` to override the data root or the settings file.
   - `np.ndarray[bool | float]`
   - FreeSurfer cortex GM mask at the subject's resolution — bool for
     `"cortex"` / `"cortex_dil"`, float for `"cortex_sm"` (soft mask)
+* - {meth}`~AOTaccess.subject.AOTSubject.get_glmsingle_ncsnr_mask`
+  - `np.ndarray[bool]`
+  - session-averaged GLMsingle noise-ceiling mask (NCSNR-monotonic),
+    cached per `threshold` — what `default_mask="ncsnr"` returns
+* - {meth}`~AOTaccess.subject.AOTSubject.get_glmsingle_r2_mask`
+  - `np.ndarray[bool]`
+  - legacy single-session R² > 0 mask, cached per `ses` — diagnostic
+    sibling
 * - `affine` / `header`
   - `np.ndarray` / `nib.Nifti1Header`
   - subject-native (T1w) at `resolution`

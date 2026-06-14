@@ -7,8 +7,7 @@ and is what encoding / decoding models want.
 
 ## The brain mask
 
-A 3-D boolean array, computed by
-{func}`~AOTaccess.brain.compute_brain_mask` and cached on
+A 3-D boolean array on the subject's EPI grid, cached on
 {class}`~AOTaccess.subject.AOTSubject`:
 
 ```python
@@ -17,9 +16,59 @@ bm = sub.get_brain_mask()       # shape (X, Y, Z), dtype=bool
 sub.get_n_voxels()              # int — bm.sum()
 ```
 
-Default derivation: voxels where the GLMsingle R² map is **finite and > 0**
-in `ses=1`. Anatomy is constant across sessions; the reference session only
-affects which voxels GLMsingle flagged as informative.
+**Default**: the dilated FreeSurfer cortex gray-matter mask
+(`cortex_dil`, ~98 k voxels at 2 mm). Anatomical, so it keeps low-R²
+regions like the DMN that a data-driven mask would drop. The mask
+shares its affine with the GLMsingle / aot_prep EPI grid, so no
+resampling is needed downstream.
+
+Pick a different default via the `default_mask=` constructor argument:
+
+| `default_mask` | what it returns | typical n at 2 mm | comment |
+|---|---|---|---|
+| `"cortex_dil"` (default) | dilated FreeSurfer cortex GM | ~98 k | broad anatomical cortex, DMN-safe |
+| `"cortex"` | canonical FreeSurfer cortex GM | ~61 k | tighter anatomical cortex |
+| `"cortex_sm"` | soft cortex mask thresholded at 0.5 | ~75 k | smoother boundaries |
+| `"ncsnr"` | session-averaged GLMsingle noise ceiling > 0 | ~210 k | data-driven signal mask |
+| `"r2"` | alias for `"ncsnr"` | ~210 k | kept for backward intent (underlying metric is now NCSNR, not type-D R²) |
+
+```python
+sub_signal = AOTSubject(1, default_mask="ncsnr")     # data-driven default
+sub_tight  = AOTSubject(1, default_mask="cortex")    # canonical cortex GM
+```
+
+### The data-driven sibling
+
+{meth}`~AOTaccess.subject.AOTSubject.get_glmsingle_ncsnr_mask` is always
+reachable — even when the default is anatomical — for diagnostic
+comparisons:
+
+```python
+sub = AOTSubject(1)                                # default = cortex_dil
+gm  = sub.get_brain_mask()                         # anatomical
+sig = sub.get_glmsingle_ncsnr_mask()               # signal-based
+overlap = (gm & sig).sum() / sig.sum()             # what fraction of signal lives in GM
+```
+
+It reads `noiseceiling_dir-fw` and `noiseceiling_dir-rv` for every
+main-task session present, averages across (session × direction), and
+thresholds at 0 by default. The result is monotone in NCSNR
+(noise-ceiling SNR — GLMsingle's per-voxel reliability metric), so the
+qualitative interpretation is *voxels that show reliable signal across
+most of the subject's data*. Tune the cutoff via
+`get_glmsingle_ncsnr_mask(threshold=0.05)` (etc.); each threshold is
+cached separately on the subject.
+
+### Why the default isn't single-session R²
+
+The previous default — single-session GLMsingle R² > 0 — has two
+problems for encoding-model work: it overcounts voxels that overfit in
+the reference session, and it undercounts the DMN, whose signal is
+real but rarely makes the R² > 0 cut. The session-averaged NCSNR mask
+fixes both. The single-session R² > 0 mask is still reachable for
+diagnostics via
+{meth}`~AOTaccess.subject.AOTSubject.get_glmsingle_r2_mask` and as the
+underlying primitive {func}`~AOTaccess.brain.compute_brain_mask`.
 
 ## Gray-matter mask — a tighter working set
 

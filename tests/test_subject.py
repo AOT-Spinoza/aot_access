@@ -61,10 +61,16 @@ def test_discovery_methods(sub1):
 
 @pytest.mark.cluster
 def test_brain_mask_caches_and_counts(sub1):
+    """Default brain mask = dilated FreeSurfer cortex GM (~98 k at 2 mm)."""
     m1 = sub1.get_brain_mask()
     assert m1 is sub1.get_brain_mask()           # cached identity
     assert m1.shape == (69, 81, 86)
     assert sub1.get_n_voxels() == int(m1.sum()) > 0
+    # Default flipped to cortex_dil: ~98 k voxels at 2 mm; the underlying
+    # mask file is the dilated anatomical cortex.
+    assert sub1.default_mask == "cortex_dil"
+    cortex_dil = sub1.get_gray_matter_mask("cortex_dil")
+    assert np.array_equal(m1, cortex_dil)
 
 
 @pytest.mark.cluster
@@ -181,6 +187,73 @@ def test_get_gray_matter_mask_variants_cached(sub1):
     c = sub1.get_gray_matter_mask(variant="cortex_dil")
     assert c is not a
     assert int(c.sum()) > int(a.sum())               # dilated is larger
+
+
+# ---------------------------------------------------------------------------
+# default-mask flip + signal-mask siblings
+# ---------------------------------------------------------------------------
+
+
+def test_default_mask_rejects_unknown():
+    """Pure-unit: validation runs in __init__, before any data access."""
+    with pytest.raises(ValueError) as ei:
+        AOTSubject(1, default_mask="bogus")
+    assert "default_mask" in str(ei.value)
+    assert "bogus" in str(ei.value)
+
+
+@pytest.mark.cluster
+def test_default_mask_opt_in_cortex(aot_config):
+    """`default_mask='cortex'` returns the (undilated) GM mask."""
+    sub = AOTSubject(1, config=aot_config, default_mask="cortex")
+    bm = sub.get_brain_mask()
+    gm = sub.get_gray_matter_mask("cortex")
+    assert np.array_equal(bm, gm)
+
+
+@pytest.mark.cluster
+def test_default_mask_opt_in_cortex_sm(aot_config):
+    """`default_mask='cortex_sm'` returns soft cortex thresholded at 0.5."""
+    sub = AOTSubject(1, config=aot_config, default_mask="cortex_sm")
+    bm = sub.get_brain_mask()
+    sm = sub.get_gray_matter_mask("cortex_sm")
+    assert bm.dtype == bool
+    assert np.array_equal(bm, sm > 0.5)
+
+
+@pytest.mark.cluster
+def test_default_mask_r2_and_ncsnr_are_synonyms(aot_config):
+    """`default_mask='r2'` is an alias for `default_mask='ncsnr'`."""
+    sub_r2 = AOTSubject(1, config=aot_config, default_mask="r2")
+    sub_nc = AOTSubject(1, config=aot_config, default_mask="ncsnr")
+    assert np.array_equal(sub_r2.get_brain_mask(), sub_nc.get_brain_mask())
+    # And both equal `get_glmsingle_ncsnr_mask()` at its default threshold.
+    sub_default = AOTSubject(1, config=aot_config)
+    assert np.array_equal(
+        sub_r2.get_brain_mask(), sub_default.get_glmsingle_ncsnr_mask()
+    )
+
+
+@pytest.mark.cluster
+def test_glmsingle_ncsnr_mask_cached_per_threshold(sub1):
+    """Cache keys on threshold — same threshold returns identical array."""
+    a = sub1.get_glmsingle_ncsnr_mask()                  # default thr=0
+    assert a is sub1.get_glmsingle_ncsnr_mask()          # cached
+    b = sub1.get_glmsingle_ncsnr_mask(threshold=0.05)
+    assert b is not a
+    # Tighter mask: strict subset of the looser one.
+    assert int(b.sum()) < int(a.sum())
+    assert (b & ~a).sum() == 0
+
+
+@pytest.mark.cluster
+def test_glmsingle_r2_mask_legacy(sub1):
+    """Legacy R²>0 mask is still reachable as a diagnostic sibling."""
+    r2 = sub1.get_glmsingle_r2_mask(ses=1)
+    assert r2.dtype == bool
+    assert r2 is sub1.get_glmsingle_r2_mask(ses=1)        # cached per session
+    # And it's NOT the default brain mask any more (which is cortex_dil).
+    assert not np.array_equal(r2, sub1.get_brain_mask())
 
 
 @pytest.mark.cluster

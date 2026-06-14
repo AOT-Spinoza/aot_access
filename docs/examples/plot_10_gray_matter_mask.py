@@ -1,63 +1,77 @@
 """
-Gray-matter mask — fitting on cortex only
-==========================================
+Gray-matter mask — the default working set, and its variants
+=============================================================
 
-The default working set is the GLMsingle-derived brain mask (R² > 0).
-For encoding-model work it's usually more natural to fit on cortex gray
-matter. The FreeSurfer cortex GM masks live in
-``anat-3T/<sub>/fiducial/res-<XpXmm>/`` and share the EPI affine, so
-they drop in as a custom ``mask=`` with no resampling.
+As of the latest release, ``AOTSubject(sub).get_brain_mask()`` returns
+the **dilated FreeSurfer cortex GM mask** (``"cortex_dil"``) by
+default — anatomical cortex including DMN regions, ~98 k voxels at
+2 mm. The other two GM variants and the legacy data-driven masks are
+reachable as siblings:
+
+* ``"cortex"`` — canonical (undilated) FreeSurfer cortex GM, ~61 k.
+* ``"cortex_sm"`` — smoothed soft cortex mask, float in [0, 1].
+* ``"ncsnr"`` — session-averaged GLMsingle noise-ceiling mask,
+  ~210 k voxels (use ``AOTSubject(sub, default_mask="ncsnr")`` to
+  pick it as the default).
+
+This example walks the four anatomical-mask options and the
+data-driven NCSNR sibling, then compares betas shapes.
 """
 
 # %%
-# Three variants.
+# The default subject — its brain mask is now ``cortex_dil``.
 
 import numpy as np
 from AOTaccess.subject import AOTSubject
 
 sub = AOTSubject(1)
-brain = sub.get_brain_mask()
-cortex = sub.get_gray_matter_mask()                # bool
-dilated = sub.get_gray_matter_mask("cortex_dil")   # bool
+default_bm = sub.get_brain_mask()                  # bool, default = cortex_dil
+cortex = sub.get_gray_matter_mask("cortex")        # bool
+dilated = sub.get_gray_matter_mask("cortex_dil")   # bool — same as default_bm
 soft = sub.get_gray_matter_mask("cortex_sm")       # float in [0, 1]
+ncsnr = sub.get_glmsingle_ncsnr_mask()             # bool, session-averaged signal mask
 
-print("brain        :", int(brain.sum()))
-print("cortex       :", int(cortex.sum()))
-print("cortex_dil   :", int(dilated.sum()))
-print("cortex_sm>0  :", int((soft > 0).sum()))
-print("cortex_sm>0.5:", int((soft > 0.5).sum()))
-
-# %%
-# Each variant is intersected with the brain mask when passed as a
-# selector to ``get_betas`` — so the GM voxel count reported above
-# may shrink when overlapped with what GLMsingle saw.
-
-print("cortex ∩ brain      :", int((cortex & brain).sum()))
-print("cortex_dil ∩ brain  :", int((dilated & brain).sum()))
+print("default brain mask (cortex_dil):", int(default_bm.sum()))
+print("cortex                          :", int(cortex.sum()))
+print("cortex_dil                      :", int(dilated.sum()))
+print("cortex_sm > 0                   :", int((soft > 0).sum()))
+print("cortex_sm > 0.5                 :", int((soft > 0.5).sum()))
+print("ncsnr (session-averaged signal) :", int(ncsnr.sum()))
 
 # %%
-# Same flat-voxel API, with the working set restricted to GM.
+# Any selector passed to ``get_betas`` is intersected with the default
+# brain mask — so a mask query through ``mask=`` only ever shrinks the
+# default working set.
 
-betas_default = sub.get_betas(ses=1)                     # over the brain mask
-betas_gm = sub.get_betas(ses=1, mask=cortex)             # over cortex ∩ brain
-betas_dil = sub.get_betas(ses=1, mask=dilated)           # over cortex_dil ∩ brain
-betas_soft = sub.get_betas(ses=1, mask=(soft > 0.5))     # threshold soft mask yourself
+print("cortex ∩ default     :", int((cortex & default_bm).sum()))
+print("ncsnr ∩ default      :", int((ncsnr & default_bm).sum()))
 
-print("\nshape (default brain mask) :", betas_default.shape)
-print("shape (cortex)              :", betas_gm.shape)
-print("shape (cortex_dil)          :", betas_dil.shape)
-print("shape (cortex_sm > 0.5)     :", betas_soft.shape)
+# %%
+# Same flat-voxel API, with the working set restricted by ``mask=``.
+# The default call (no selector) now lands on ~98 k cortical voxels;
+# explicitly selecting the canonical (undilated) cortex tightens to ~61 k;
+# the soft mask thresholded at 0.5 sits between.
+
+betas_default = sub.get_betas(ses=1)                     # over cortex_dil
+betas_gm = sub.get_betas(ses=1, mask=cortex)             # over cortex ∩ cortex_dil
+betas_soft = sub.get_betas(ses=1, mask=(soft > 0.5))     # over (soft > 0.5) ∩ cortex_dil
+betas_ncsnr = sub.get_betas(ses=1, mask=ncsnr)           # over ncsnr ∩ cortex_dil
+
+print("\nshape (default = cortex_dil) :", betas_default.shape)
+print("shape (cortex)                :", betas_gm.shape)
+print("shape (cortex_sm > 0.5)       :", betas_soft.shape)
+print("shape (ncsnr)                 :", betas_ncsnr.shape)
 
 # %%
 # Where do the variants differ in the slice? Plot one axial slice with
-# the brain mask in gray, cortex (red), and the cortex_dil − cortex
-# differential (blue) on top.
+# the dilated cortex (default brain mask) in gray, canonical cortex
+# (red), and the dilation halo (cortex_dil − cortex, blue).
 
 import matplotlib.pyplot as plt
 
-z = brain.shape[2] // 2
+z = default_bm.shape[2] // 2
 fig, ax = plt.subplots(figsize=(4, 4))
-ax.imshow(brain[:, :, z].T, cmap="gray_r", origin="lower", alpha=0.25)
+ax.imshow(default_bm[:, :, z].T, cmap="gray_r", origin="lower", alpha=0.25)
 ax.imshow(
     np.where(cortex[:, :, z], 1.0, np.nan).T,
     cmap="Reds", origin="lower", vmin=0, vmax=1,
@@ -66,21 +80,25 @@ ax.imshow(
     np.where(dilated[:, :, z] & ~cortex[:, :, z], 1.0, np.nan).T,
     cmap="Blues", origin="lower", vmin=0, vmax=1,
 )
-ax.set_title(f"axial z={z}: brain (gray), cortex (red), dilation halo (blue)")
+ax.set_title(f"axial z={z}: cortex_dil (gray), cortex (red), halo (blue)")
 ax.set_xticks([]); ax.set_yticks([])
 fig.tight_layout()
 
 # %%
-# How does the noise ceiling compare across the two working sets?
+# How does the noise ceiling compare across the anatomical default and
+# the data-driven NCSNR mask? The NCSNR mask is wider (~210 k) but
+# selects on reliability; the cortex_dil default is anatomy-based but
+# keeps DMN voxels with low NC.
 
-nc_brain = sub.get_noise_ceiling(ses=1)                  # default mask
-nc_gm = sub.get_noise_ceiling(ses=1, mask=cortex)
+nc_default = sub.get_noise_ceiling(ses=1)                  # default = cortex_dil
+sub_ncsnr = AOTSubject(1, default_mask="ncsnr")
+nc_signal = sub_ncsnr.get_noise_ceiling(ses=1)
 
 fig, ax = plt.subplots(figsize=(5, 3))
-ax.hist(nc_brain, bins=60, alpha=0.5, label=f"brain (n={nc_brain.size})", density=True)
-ax.hist(nc_gm, bins=60, alpha=0.5, label=f"cortex GM (n={nc_gm.size})", density=True)
-ax.set_xlabel("noise ceiling")
+ax.hist(nc_default, bins=60, alpha=0.5, label=f"cortex_dil (n={nc_default.size})", density=True)
+ax.hist(nc_signal, bins=60, alpha=0.5, label=f"ncsnr (n={nc_signal.size})", density=True)
+ax.set_xlabel("noise ceiling (ses-1, dir-fw)")
 ax.set_ylabel("density")
 ax.legend()
-ax.set_title("Noise-ceiling distribution: brain mask vs cortex GM")
+ax.set_title("Noise-ceiling distribution: cortex_dil vs NCSNR mask")
 fig.tight_layout()

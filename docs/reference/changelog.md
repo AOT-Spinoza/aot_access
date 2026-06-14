@@ -8,6 +8,26 @@ Maintained per release. Currently pre-release; see the git log on the
 
 ## Unreleased
 
+- Default brain mask flipped to the dilated FreeSurfer cortex GM
+  (``"cortex_dil"``, ~98 k voxels at 2 mm).
+  {class}`~AOTaccess.subject.AOTSubject` now takes a ``default_mask``
+  constructor argument selecting the working set:
+  ``"cortex_dil"`` (default) / ``"cortex"`` / ``"cortex_sm"`` for
+  anatomical masks; ``"ncsnr"`` (or ``"r2"`` as an alias) for the new
+  data-driven mask. The anatomical default keeps low-R² cortex (DMN)
+  in the working set without needing a custom ``mask=`` argument.
+  Existing ``mask=``/``roi=`` selectors are unchanged.
+- New session-averaged signal mask:
+  {func}`~AOTaccess.brain.compute_ncsnr_brain_mask` reads
+  ``noiseceiling_dir-{fw,rv}`` for every main-task session, averages
+  across (session × direction), and thresholds. Exposed on
+  {class}`~AOTaccess.subject.AOTSubject` as
+  {meth}`~AOTaccess.subject.AOTSubject.get_glmsingle_ncsnr_mask`
+  (cached per ``threshold``). The legacy single-session R² > 0 mask is
+  still reachable as
+  {meth}`~AOTaccess.subject.AOTSubject.get_glmsingle_r2_mask` (and the
+  underlying {func}`~AOTaccess.brain.compute_brain_mask`) for
+  diagnostics.
 - Motion-energy features migrated to per-(video, direction, rate) HDF5.
   :meth:`~AOTaccess.stimulus_info_access.StimuliInfoAccess.read_motion_energy_features`
   now prefers ``.../motion_energy/{16,32}hz/NNNN_{fw,rv}.h5``
