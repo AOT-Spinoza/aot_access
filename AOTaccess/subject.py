@@ -17,8 +17,14 @@ import numpy as np
 import pandas as pd
 
 from AOTaccess import discovery
+from AOTaccess.anatomy_access import AnatomyAccess
 from AOTaccess.bids_access import BidsAccess
-from AOTaccess.brain import compute_brain_mask, get_voxel_coordinates, to_nifti
+from AOTaccess.brain import (
+    compute_brain_mask,
+    compute_ncsnr_brain_mask,
+    get_voxel_coordinates,
+    to_nifti,
+)
 from AOTaccess.config import Config
 from AOTaccess.errors import DataNotFoundError
 from AOTaccess.expdesign_access import ExpDesignAccess
@@ -30,22 +36,61 @@ from AOTaccess.roi_access import ROIAccess
 # matches the trailing "NNNN_fw.mp4" or "NNNN_rv.mp4" in an events-tsv movie_file
 _MOVIE_RE = re.compile(r"(\d{4})_(fw|rv)\.mp4$")
 
+# Allowed values for `default_mask` and how each maps to a working-set
+# computation. The cortex_* variants delegate to ``read_gray_matter_mask``
+# (anatomical, EPI grid); ``"ncsnr"`` / ``"r2"`` both delegate to the
+# session-averaged NCSNR-monotonic mask. (``"r2"`` is kept as a synonym
+# for "the GLMsingle-derived signal mask" — the underlying metric is now
+# noise-ceiling, not type-D R², because NCSNR averages better across
+# sessions and doesn't reward overfit voxels.)
+_DEFAULT_MASK_CHOICES = {
+    "cortex": "anatomical",
+    "cortex_dil": "anatomical",
+    "cortex_sm": "anatomical_soft",   # thresholded internally at 0.5
+    "ncsnr": "signal",
+    "r2": "signal",                   # alias for ncsnr-based signal mask
+}
+
 
 class AOTSubject:
     """Per-subject access object for the AOT dataset."""
 
     def __init__(self, sub, config=None, resolution="2p0mm",
-                 glmtype="TYPED_FITHRF_GLMDENOISE_RR"):
+                 glmtype="TYPED_FITHRF_GLMDENOISE_RR",
+                 default_mask="cortex_dil"):
         """
         Parameters:
             sub (int | str): Subject identifier (e.g. ``1`` or ``"sub-001"``).
             config (Config): An explicit Config; otherwise default settings.
             resolution (str): EPI/T1w grid resolution, default ``"2p0mm"``.
             glmtype (str): GLMsingle model entity, default the full RR model.
+            default_mask (str): The mask returned by
+                :meth:`get_brain_mask` and used as the working set by every
+                voxel-valued method when no ``roi``/``mask`` is passed.
+                One of:
+
+                * ``"cortex_dil"`` (**default**) — dilated FreeSurfer cortex
+                  GM, ~100 k voxels at 2 mm. Keeps low-R² regions like the
+                  DMN.
+                * ``"cortex"`` — canonical FreeSurfer cortex GM, ~60 k.
+                * ``"cortex_sm"`` — smoothed soft cortex mask, thresholded
+                  at 0.5 to a boolean working set.
+                * ``"ncsnr"`` — session-averaged GLMsingle noise ceiling
+                  (NCSNR-monotonic) > 0 — see
+                  :meth:`get_glmsingle_ncsnr_mask`.
+                * ``"r2"`` — alias for ``"ncsnr"`` (kept for backward
+                  intent; the underlying metric is now NCSNR-averaged-
+                  across-sessions, not type-D R²).
         """
+        if default_mask not in _DEFAULT_MASK_CHOICES:
+            raise ValueError(
+                f"Unknown default_mask={default_mask!r}; "
+                f"expected one of {sorted(_DEFAULT_MASK_CHOICES)}."
+            )
         self.sub = sub
         self.resolution = resolution
         self.glmtype = glmtype
+        self.default_mask = default_mask
         self.config = config if config is not None else Config()
         # Sub-accessors share the same Config.
         self.glmsingle = GLMSingleAccess(config=self.config)
@@ -53,11 +98,15 @@ class AOTSubject:
         self.roi = ROIAccess(config=self.config)
         self.expdesign = ExpDesignAccess(config=self.config)
         self.preproced = PreprocedAccess(config=self.config)
+        self.anatomy = AnatomyAccess(config=self.config)
         # Lazy caches.
         self._brain_mask = None
         self._affine = None
         self._header = None
         self._trial_table = None
+        self._gm_mask_cache = {}                # keyed by variant
+        self._ncsnr_mask_cache = {}             # keyed by threshold
+        self._r2_mask_cache = {}                # keyed by ses
 
     # ------------------------------------------------------------------
     # discovery (subject-scoped)
@@ -81,17 +130,116 @@ class AOTSubject:
     # brain geometry
     # ------------------------------------------------------------------
     def get_brain_mask(self):
-        """Boolean 3-D brain mask for this subject (cached)."""
+        """Boolean 3-D brain mask for this subject (cached).
+
+        Returns the mask implied by ``default_mask`` (chosen at
+        construction). The default is ``"cortex_dil"`` — the dilated
+        FreeSurfer cortex GM mask — so the standard working set is
+        anatomical cortex including DMN regions.
+
+        ``default_mask`` choices and what they return here:
+
+        * ``"cortex"`` / ``"cortex_dil"`` → that GM variant (bool).
+        * ``"cortex_sm"`` → the soft mask thresholded at 0.5 (bool).
+        * ``"ncsnr"`` / ``"r2"`` → :meth:`get_glmsingle_ncsnr_mask` at
+          its default threshold (session-averaged NCSNR-monotonic > 0).
+
+        :meth:`get_glmsingle_r2_mask` and
+        :meth:`get_glmsingle_ncsnr_mask` are always reachable as
+        siblings for diagnostic comparisons, regardless of which mask is
+        the configured default.
+        """
         if self._brain_mask is None:
-            self._brain_mask = compute_brain_mask(
-                self.sub, resolution=self.resolution, glmtype=self.glmtype,
-                glmsingle=self.glmsingle,
-            )
+            self._brain_mask = self._compute_default_mask()
         return self._brain_mask
+
+    def _compute_default_mask(self):
+        """Resolve ``self.default_mask`` to a 3-D boolean array."""
+        if self.default_mask in ("cortex", "cortex_dil"):
+            return self.get_gray_matter_mask(variant=self.default_mask)
+        if self.default_mask == "cortex_sm":
+            return self.get_gray_matter_mask(variant="cortex_sm") > 0.5
+        if self.default_mask in ("ncsnr", "r2"):
+            return self.get_glmsingle_ncsnr_mask()
+        # _DEFAULT_MASK_CHOICES is validated in __init__; this is unreachable.
+        raise ValueError(  # pragma: no cover
+            f"Unknown default_mask={self.default_mask!r}"
+        )
 
     def get_n_voxels(self):
         """Number of voxels in the brain mask."""
         return int(self.get_brain_mask().sum())
+
+    def get_gray_matter_mask(self, variant="cortex"):
+        """Cortex gray-matter mask on the subject's EPI grid.
+
+        Reads the FreeSurfer cortex GM mask from
+        ``anat-3T/<sub>/fiducial/res-{self.resolution}/...``. Return type
+        follows the variant — boolean for the binary masks
+        (``"cortex"``, ~60 k voxels; ``"cortex_dil"``, ~100 k) and float
+        in ``[0, 1]`` for the smoothed soft mask (``"cortex_sm"``;
+        threshold yourself before passing to a ``mask=`` selector).
+        Cached per variant.
+
+        The mask shares the EPI grid affine, so it drops in as a custom
+        ``mask=`` on the voxel-valued methods:
+
+        >>> betas = sub.get_betas(ses=1, mask=sub.get_gray_matter_mask())
+        """
+        if variant not in self._gm_mask_cache:
+            self._gm_mask_cache[variant] = self.anatomy.read_gray_matter_mask(
+                self.sub, resolution=self.resolution, variant=variant,
+            )
+        return self._gm_mask_cache[variant]
+
+    def get_glmsingle_ncsnr_mask(self, threshold=0.0):
+        """Session-averaged GLMsingle noise-ceiling mask (NCSNR-monotonic).
+
+        Reads ``noiseceiling_dir-fw`` and ``noiseceiling_dir-rv`` for
+        every main-task session present for this subject, averages
+        across (session × direction), and thresholds. The result is the
+        "voxels with reliable signal across most of the subject's data"
+        mask — the data-driven brain mask used when ``default_mask`` is
+        ``"ncsnr"`` (or its synonym ``"r2"``).
+
+        Cached per ``threshold``. See :func:`brain.compute_ncsnr_brain_mask`
+        for the underlying derivation.
+
+        Parameters:
+            threshold (float): inclusion threshold on the averaged value.
+                Default ``0`` — "any reliable signal at all" — selects
+                ~200 k voxels at 2 mm for a full subject. Raise (e.g.,
+                ``0.05``) for a tighter mask.
+        """
+        if threshold not in self._ncsnr_mask_cache:
+            self._ncsnr_mask_cache[threshold] = compute_ncsnr_brain_mask(
+                self.sub,
+                threshold=threshold,
+                glmtype=self.glmtype,
+                resolution=self.resolution,
+                glmsingle=self.glmsingle,
+                config=self.config,
+            )
+        return self._ncsnr_mask_cache[threshold]
+
+    def get_glmsingle_r2_mask(self, ses=1):
+        """Legacy single-session R² > 0 mask (diagnostic).
+
+        Returns the boolean mask of voxels where GLMsingle's type-D R²
+        is finite and positive in ``ses``. Kept reachable for
+        backward-compatibility checks and for diagnostic plots against
+        :meth:`get_glmsingle_ncsnr_mask`; **not** what the package uses
+        as a default any more — NCSNR-based session averaging is more
+        stable and doesn't reward overfit voxels.
+
+        Cached per session.
+        """
+        if ses not in self._r2_mask_cache:
+            self._r2_mask_cache[ses] = compute_brain_mask(
+                self.sub, ses=ses, resolution=self.resolution,
+                glmtype=self.glmtype, glmsingle=self.glmsingle,
+            )
+        return self._r2_mask_cache[ses]
 
     @property
     def affine(self):

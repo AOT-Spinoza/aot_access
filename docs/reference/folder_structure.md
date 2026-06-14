@@ -77,7 +77,8 @@ annotations/NNNN_{fw,rv}.mp4/
   depth_estimation/MiDaS/...{hdf5,mp4}
   instance_segmentation/MaskRCNN_ResNet50_FPN/...{hdf5,mp4}
   keypoints/KeypointRCNN_ResNet50/...{hdf5,mp4}
-  motion_energy/{16hz,32hz}/...npy
+  motion_energy/{16hz,32hz}/NNNN_{fw,rv}.h5     # /motion_energy (n_frames, n_filters), /motion_energy_summary (n_filters,)
+  motion_energy/{16hz,32hz}/NNNN_{fw,rv}.npy    # legacy per-frame; phased out as the .h5 conversion lands
   object_detection/fasterrcnn_resnet50_fpn_v2/...{hdf5,mp4}
   qwen_description/...txt
   qwen_embedding/..._embedding.json
@@ -89,8 +90,15 @@ annotations/NNNN_{fw,rv}.mp4/
 
 ```text
 sub-XXX/fiducial/res-XpXmm/
-  sub-XXX_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz   # the canonical T1w reference at this EPI grid
+  sub-XXX_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz   # canonical T1w reference at this EPI grid
   sub-XXX_ses-3Tanat_T2w_brain_T2BM_crop_resampled.nii.gz
-  sub-XXX_FScortexGM_T2BM_crop_resampled.nii.gz
+  sub-XXX_FScortexGM_T2BM_crop_resampled.nii.gz          # FreeSurfer cortex GM mask (binary)
+  sub-XXX_FScortexGM_dil_T2BM_crop_resampled.nii.gz      # dilated (binary)
+  sub-XXX_FScortexGM_sm_T2BM_crop_resampled.nii.gz       # smoothed soft mask (float [0,1])
   ...
 ```
+
+The GM masks share the affine of `space-T1w_res-XpXmm` derivatives, so
+they can be used directly as voxel selectors; access via
+{meth}`~AOTaccess.subject.AOTSubject.get_gray_matter_mask` or
+{meth}`~AOTaccess.anatomy_access.AnatomyAccess.read_gray_matter_mask`.

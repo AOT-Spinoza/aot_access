@@ -1,5 +1,9 @@
 """Tests for the cross-video annotations manifest + per-video readers."""
 
+import warnings
+
+import h5py
+import numpy as np
 import pytest
 
 from AOTaccess.stimulus_info_access import StimuliInfoAccess
@@ -111,3 +115,112 @@ def test_available_annotations(stim):
 def test_missing_video_behavior_raises(stim):
     with pytest.raises(DataNotFoundError):
         stim.read_video_behavior(99999, "fw")
+
+
+# ---------------------------------------------------------------------------
+# motion-energy: HDF5-first, .npy fallback, per-video summary
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.cluster
+def test_motion_energy_features_prefers_h5(stim):
+    """If the .h5 exists, it's used and we get exactly its /motion_energy."""
+    h5_path = stim._motion_energy_h5_path(1, "fw", 16)
+    if not h5_path.exists():
+        pytest.skip(f"HDF5 not yet on disk for this video: {h5_path}")
+    with h5py.File(h5_path, "r") as f:
+        expected = f["motion_energy"][...]
+    feats = stim.read_motion_energy_features(1, direction="fw", highest_freq=16)
+    assert feats.shape == expected.shape
+    assert feats.dtype == expected.dtype
+    np.testing.assert_array_equal(feats, expected)
+    # And channel-axis matches the filter-bank advert.
+    info = stim.read_moten_filter_info(16)
+    assert feats.shape[1] == info["meta"]["n_filters"]
+
+
+@pytest.mark.cluster
+def test_motion_energy_features_falls_back_to_npy(stim):
+    """When only the legacy .npy exists, we read it and warn loudly."""
+    h5_path = stim._motion_energy_h5_path(1, "fw", 32)
+    npy_path = stim._motion_energy_npy_path(1, "fw", 32)
+    if h5_path.exists() or not npy_path.exists():
+        pytest.skip("32-Hz conversion state has moved on; this test is "
+                    "specific to the .h5-missing / .npy-present window.")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        feats = stim.read_motion_energy_features(1, direction="fw", highest_freq=32)
+    assert feats.ndim == 2 and feats.shape[1] > 0
+    assert any(
+        issubclass(w.category, DeprecationWarning) and "legacy .npy" in str(w.message)
+        for w in caught
+    ), "expected a DeprecationWarning naming the legacy .npy fallback"
+
+
+@pytest.mark.cluster
+def test_motion_energy_features_missing_raises(stim):
+    """Neither the HDF5 nor the legacy NPY → DataNotFoundError naming both."""
+    with pytest.raises(DataNotFoundError) as ei:
+        stim.read_motion_energy_features(99999, direction="fw", highest_freq=16)
+    msg = str(ei.value)
+    assert "99999" in msg
+    assert ".h5" in msg and ".npy" in msg
+
+
+@pytest.mark.cluster
+def test_motion_energy_summary_shape_when_present(stim):
+    """If /motion_energy_summary is written, it's (n_filters,) and matches the
+    temporal mean of /motion_energy (Nishimoto / Gallant-lab pooling)."""
+    h5_path = stim._motion_energy_h5_path(1, "fw", 16)
+    if not h5_path.exists():
+        pytest.skip("HDF5 not yet on disk for this video")
+    with h5py.File(h5_path, "r") as f:
+        if "motion_energy_summary" not in f:
+            pytest.skip(
+                "/motion_energy_summary not yet written — HDF5 conversion is "
+                "in progress; the reader is exercised by the missing-dataset "
+                "test below."
+            )
+        per_frame = f["motion_energy"][...]
+    summary = stim.read_motion_energy_summary(1, direction="fw", highest_freq=16)
+    info = stim.read_moten_filter_info(16)
+    assert summary.shape == (info["meta"]["n_filters"],)
+    # The summary IS the temporal mean of the per-frame array.
+    np.testing.assert_allclose(summary, per_frame.mean(axis=0), atol=1e-5)
+
+
+@pytest.mark.cluster
+def test_motion_energy_summary_raises_when_dataset_missing(stim):
+    """During the conversion window, the summary read raises DataNotFoundError
+    that names the missing dataset, not just a generic missing file."""
+    h5_path = stim._motion_energy_h5_path(1, "fw", 16)
+    if not h5_path.exists():
+        pytest.skip("HDF5 not yet on disk for this video")
+    with h5py.File(h5_path, "r") as f:
+        if "motion_energy_summary" in f:
+            pytest.skip("summary dataset is already written for this video")
+    with pytest.raises(DataNotFoundError) as ei:
+        stim.read_motion_energy_summary(1, direction="fw", highest_freq=16)
+    assert "motion_energy_summary" in str(ei.value)
+
+
+@pytest.mark.cluster
+def test_motion_energy_summary_missing_file_raises(stim):
+    """When the HDF5 file itself is absent (e.g. 32 Hz mid-conversion or a
+    bogus video id), the summary reader raises pointing at the missing file."""
+    with pytest.raises(DataNotFoundError) as ei:
+        stim.read_motion_energy_summary(99999, direction="fw", highest_freq=16)
+    assert "99999" in str(ei.value)
+    assert ".h5" in str(ei.value)
+
+
+def test_motion_energy_path_helpers_pure_unit():
+    """Path-building is pure: no cluster needed."""
+    stim = StimuliInfoAccess()
+    h5p = stim._motion_energy_h5_path(7, "rv", 32)
+    npyp = stim._motion_energy_npy_path(7, "rv", 32)
+    assert h5p.name == "0007_rv.h5"
+    assert npyp.name == "0007_rv.npy"
+    assert h5p.parent.name == "32hz"
+    assert npyp.parent.name == "32hz"
+    assert h5p.parent.parent.name == "motion_energy"

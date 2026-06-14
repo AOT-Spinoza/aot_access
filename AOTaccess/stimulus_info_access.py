@@ -1,4 +1,5 @@
 from pathlib import Path
+import warnings
 import numpy as np
 import pandas as pd
 import yaml
@@ -99,12 +100,12 @@ class StimuliInfoAccess:
         """Pymoten filter-bank info for the given max spatial frequency.
 
         Returns a dict with ``meta`` (filter-bank parameters; ``n_filters``
-        is the channel count of the motion-energy NPYs), ``dva_alignment``
-        (image-to-degrees mapping), and ``filters`` — one dict per filter,
-        with its centre, spatial/temporal frequency, direction, envelope
-        and pRF-aligned coordinates (x_dva, y_dva, eccentricity, polar
-        angle). Cached after the first load (the YAML is large —
-        ~38 k lines for 16-Hz, ~178 k for 32-Hz).
+        is the channel count of the per-frame motion-energy array),
+        ``dva_alignment`` (image-to-degrees mapping), and ``filters`` —
+        one dict per filter, with its centre, spatial/temporal frequency,
+        direction, envelope and pRF-aligned coordinates (x_dva, y_dva,
+        eccentricity, polar angle). Cached after the first load (the YAML
+        is large — ~38 k lines for 16-Hz, ~178 k for 32-Hz).
 
         Parameters:
             highest_freq (int): 16 or 32 — matches
@@ -277,27 +278,144 @@ class StimuliInfoAccess:
         temp_file = temp_root_dir / f"{video_id:04d}_{direction}.npy"
         return np.load(temp_file)
 
-    def read_motion_energy_features(
-        self, video_id: int, direction: str = "fw", highest_freq: int = 32
-    ):
-        """
-        Read and return motion energy features for a video.
+    # ------------------------------------------------------------------
+    # motion-energy features
+    # ------------------------------------------------------------------
+    #
+    # Storage transition: per-(video, direction, rate) the features now
+    # live in an HDF5 file ``{video:04d}_{direction}.h5`` next to the
+    # legacy ``.npy``. The HDF5 carries two datasets at root level:
+    #
+    #   /motion_energy          — per-frame, shape (n_frames, n_filters)
+    #                             dtype float32; already log-compressed
+    #                             (pymoten ``pointwise_nonlinearity="log"``
+    #                             style — values can be slightly negative
+    #                             when |z|² < 1).
+    #   /motion_energy_summary  — per-video, shape (n_filters,)
+    #                             dtype float32; temporal mean of the
+    #                             per-frame array (Nishimoto / Gallant-lab
+    #                             canonical pooling: compress once, then
+    #                             average).
+    #
+    # File-level attrs: ``git_hash`` (conversion provenance) and
+    # ``highest_freq`` (16 or 32).
+    #
+    # The 32-Hz HDF5 conversion is still in progress at the time of
+    # writing — :meth:`read_motion_energy_features` prefers ``.h5`` and
+    # falls back to the legacy ``.npy`` with a one-time
+    # :class:`DeprecationWarning` so existing analyses keep running.
+    # :meth:`read_motion_energy_summary` is HDF5-only (no legacy form
+    # exists) and raises :class:`DataNotFoundError` until the file (or its
+    # ``/motion_energy_summary`` dataset) appears.
 
-        Parameters:
-            video_id (int): Video identification number.
-            direction (str): Video direction, default is "fw".
-            highest_freq (int): Motion energy frequency, 16 or 32. Default is 32.
+    def _motion_energy_h5_path(
+        self, video_id: int, direction: str, highest_freq: int
+    ) -> Path:
+        """Path to the new per-(video, direction, rate) HDF5."""
+        return (
+            self.get_video_annotation_dir(video_id, direction)
+            / "motion_energy" / f"{highest_freq}hz"
+            / f"{video_id:04d}_{direction}.h5"
+        )
 
-        Returns:
-            numpy.ndarray: Loaded motion energy features.
-        """
-        video_annotation_dir = self.get_video_annotation_dir(video_id, direction)
-        filepath = (
-            video_annotation_dir
+    def _motion_energy_npy_path(
+        self, video_id: int, direction: str, highest_freq: int
+    ) -> Path:
+        """Path to the legacy per-(video, direction, rate) NPY."""
+        return (
+            self.get_video_annotation_dir(video_id, direction)
             / "motion_energy" / f"{highest_freq}hz"
             / f"{video_id:04d}_{direction}.npy"
         )
-        return np.load(filepath)
+
+    def read_motion_energy_features(
+        self, video_id: int, direction: str = "fw", highest_freq: int = 32
+    ) -> np.ndarray:
+        """Per-frame motion-energy features for one (video, direction).
+
+        Shape ``(n_frames, n_filters)``, dtype ``float32`` — the
+        log-compressed pymoten output, one channel per filter in the bank
+        described by :meth:`read_moten_filter_info`. ``n_frames`` is 60 or
+        61 (depends on the source clip duration); ``n_filters`` matches
+        ``read_moten_filter_info(highest_freq)["meta"]["n_filters"]``.
+
+        Prefers the new HDF5 file
+        (``.../motion_energy/{freq}hz/{video:04d}_{direction}.h5``,
+        dataset ``/motion_energy``). Falls back to the legacy
+        ``.npy`` while the conversion is in progress and emits a one-time
+        :class:`DeprecationWarning` for the call site.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): ``"fw"`` or ``"rv"``.
+            highest_freq (int): Filter-bank max spatial frequency, 16 or 32.
+
+        Raises:
+            DataNotFoundError: Neither the HDF5 nor the legacy NPY exists.
+        """
+        h5_path = self._motion_energy_h5_path(video_id, direction, highest_freq)
+        if h5_path.exists():
+            with h5py.File(h5_path, "r") as f:
+                if "motion_energy" not in f:
+                    raise DataNotFoundError(
+                        f"Motion-energy HDF5 missing /motion_energy dataset: "
+                        f"{h5_path}"
+                    )
+                return f["motion_energy"][...]
+        npy_path = self._motion_energy_npy_path(video_id, direction, highest_freq)
+        if npy_path.exists():
+            warnings.warn(
+                f"Reading legacy .npy motion-energy at {npy_path}; will be "
+                f"removed once the {highest_freq}-Hz HDF5 conversion completes.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return np.load(npy_path)
+        raise DataNotFoundError(
+            f"Motion-energy file not found for video={video_id}, "
+            f"direction={direction!r}, highest_freq={highest_freq}: "
+            f"tried {h5_path} and {npy_path}"
+        )
+
+    def read_motion_energy_summary(
+        self, video_id: int, direction: str = "fw", highest_freq: int = 32
+    ) -> np.ndarray:
+        """Per-video motion-energy summary for one (video, direction).
+
+        Shape ``(n_filters,)``, dtype ``float32`` — the temporal mean of
+        the (already log-compressed) per-frame array. This is the
+        Nishimoto / Gallant-lab canonical aggregation: compress once
+        (already done upstream by pymoten), then average over time.
+
+        Reads ``/motion_energy_summary`` from the per-(video, direction,
+        rate) HDF5. No legacy ``.npy`` form exists — this method is the
+        HDF5-only entry point.
+
+        Parameters:
+            video_id (int): Video identification number.
+            direction (str): ``"fw"`` or ``"rv"``.
+            highest_freq (int): Filter-bank max spatial frequency, 16 or 32.
+
+        Raises:
+            DataNotFoundError: Either the HDF5 file is missing or the
+                ``/motion_energy_summary`` dataset has not been written yet
+                (the conversion may still be in progress).
+        """
+        h5_path = self._motion_energy_h5_path(video_id, direction, highest_freq)
+        if not h5_path.exists():
+            raise DataNotFoundError(
+                f"Motion-energy HDF5 not found for video={video_id}, "
+                f"direction={direction!r}, highest_freq={highest_freq}: "
+                f"{h5_path}"
+            )
+        with h5py.File(h5_path, "r") as f:
+            if "motion_energy_summary" not in f:
+                raise DataNotFoundError(
+                    f"/motion_energy_summary dataset not present in {h5_path} "
+                    f"(per-video summary is part of the in-progress HDF5 "
+                    f"conversion)."
+                )
+            return f["motion_energy_summary"][...]
 
     def _temp_load_vae_latent(self, latent_file: Path, kind: str = "VAE"):
         import torch

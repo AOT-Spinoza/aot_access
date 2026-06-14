@@ -6,10 +6,25 @@ Load the per-video motion-energy features and inspect the filter-bank
 metadata (centres in degrees of visual angle, spatial / temporal
 frequencies, directions). Two filter banks are available — max SF 16
 and max SF 32; the larger one has many more filters.
+
+The features live in per-(video, direction, rate) HDF5 files
+(``.../motion_energy/{16,32}hz/NNNN_{fw,rv}.h5``) with two datasets:
+
+* ``/motion_energy`` — per-frame, shape ``(n_frames, n_filters)``
+  (the log-compressed pymoten output); read with
+  :meth:`StimuliInfoAccess.read_motion_energy_features`.
+* ``/motion_energy_summary`` — per-video, shape ``(n_filters,)`` —
+  the temporal mean of the per-frame array (Nishimoto / Gallant-lab
+  canonical pooling); read with
+  :meth:`StimuliInfoAccess.read_motion_energy_summary`.
+
+The reader prefers the HDF5 and transparently falls back to the legacy
+``.npy`` while the conversion is in progress (one-time
+``DeprecationWarning``).
 """
 
 # %%
-# Load the features for one video at both bank sizes.
+# Load the per-frame features for one video at both bank sizes.
 
 from AOTaccess.stimulus_info_access import StimuliInfoAccess
 
@@ -19,6 +34,20 @@ feat16 = stim.read_motion_energy_features(1, direction="fw", highest_freq=16)
 feat32 = stim.read_motion_energy_features(1, direction="fw", highest_freq=32)
 print("16-Hz features shape :", feat16.shape, " (time, channels)")
 print("32-Hz features shape :", feat32.shape)
+
+# %%
+# Per-video summary — one (n_filters,) vector per video, equal to the
+# temporal mean of the (already log-compressed) per-frame array. Useful as a
+# fixed-length descriptor for cross-video similarity / encoding-model
+# baselines. Raises ``DataNotFoundError`` while the conversion is still
+# writing the ``/motion_energy_summary`` dataset.
+
+from AOTaccess.errors import DataNotFoundError
+try:
+    summ16 = stim.read_motion_energy_summary(1, direction="fw", highest_freq=16)
+    print("16-Hz summary shape  :", summ16.shape, "(matches n_filters)")
+except DataNotFoundError as e:
+    print("16-Hz summary not yet written:", str(e).splitlines()[0])
 
 # %%
 # Filter-bank metadata — what each channel "is".
