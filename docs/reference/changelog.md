@@ -8,6 +8,19 @@ Maintained per release. Currently pre-release; see the git log on the
 
 ## Unreleased
 
+- Motion-energy features migrated to per-(video, direction, rate) HDF5.
+  :meth:`~AOTaccess.stimulus_info_access.StimuliInfoAccess.read_motion_energy_features`
+  now prefers ``.../motion_energy/{16,32}hz/NNNN_{fw,rv}.h5``
+  (dataset ``/motion_energy``, shape ``(n_frames, n_filters)``, already
+  log-compressed by pymoten) and transparently falls back to the legacy
+  ``.npy`` with a one-time :class:`DeprecationWarning` while the conversion
+  is in progress. New
+  :meth:`~AOTaccess.stimulus_info_access.StimuliInfoAccess.read_motion_energy_summary`
+  reads ``/motion_energy_summary`` (shape ``(n_filters,)``) — the per-video
+  temporal mean of the per-frame array (Nishimoto / Gallant-lab canonical
+  pooling: compress once, average over time). Raises
+  :class:`~AOTaccess.errors.DataNotFoundError` until the summary dataset
+  is written.
 - FreeSurfer cortex gray-matter masks via
   {meth}`~AOTaccess.anatomy_access.AnatomyAccess.read_gray_matter_mask` and
   {meth}`~AOTaccess.subject.AOTSubject.get_gray_matter_mask`. Three

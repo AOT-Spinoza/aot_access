@@ -35,10 +35,22 @@ betas_v1v = np.stack([
     for v in videos
 ])  # (n_videos, n_v1v_voxels)
 
-moten = np.stack([
-    stim.read_motion_energy_features(v, direction="fw", highest_freq=16).mean(axis=0)
-    for v in videos
-])  # (n_videos, n_moten_channels)
+# Per-video summary = temporal mean over the (log-compressed) per-frame array —
+# Nishimoto / Gallant-lab canonical pooling. The HDF5 carries it as
+# /motion_energy_summary; ``read_motion_energy_summary`` reads it directly when
+# present, otherwise we compute the same mean from the per-frame array (the
+# 16-Hz / 32-Hz conversion may still be writing summaries).
+from AOTaccess.errors import DataNotFoundError
+
+def _moten_summary(v):
+    try:
+        return stim.read_motion_energy_summary(v, direction="fw", highest_freq=16)
+    except DataNotFoundError:
+        return stim.read_motion_energy_features(
+            v, direction="fw", highest_freq=16
+        ).mean(axis=0)
+
+moten = np.stack([_moten_summary(v) for v in videos])  # (n_videos, n_moten_channels)
 
 qwen = np.stack([stim.read_qwen_embedding(v, direction="fw") for v in videos])
 # (n_videos, 2048)
