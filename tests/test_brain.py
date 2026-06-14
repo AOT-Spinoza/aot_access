@@ -7,6 +7,7 @@ import pytest
 from AOTaccess.brain import (
     compute_brain_mask,
     compute_ncsnr_brain_mask,
+    compute_r2_brain_mask,
     get_voxel_coordinates,
     to_nifti,
 )
@@ -52,13 +53,85 @@ def test_get_voxel_coordinates_with_identity_affine():
 
 
 @pytest.mark.cluster
-def test_compute_brain_mask_real(aot_config):
-    mask = compute_brain_mask(1, ses=1, resolution="2p0mm", config=aot_config)
+def test_compute_r2_brain_mask_real(aot_config):
+    """Legacy R²>0 single-session primitive — still importable / callable."""
+    mask = compute_r2_brain_mask(1, ses=1, resolution="2p0mm", config=aot_config)
     assert mask.dtype == bool
     assert mask.shape == (69, 81, 86)
     # the EPI grid has ~480k voxels; a real brain mask is in the 100k+ range
     n = int(mask.sum())
     assert 80_000 < n < 350_000
+
+
+# ---------------------------------------------------------------------------
+# compute_brain_mask — the dispatcher
+# ---------------------------------------------------------------------------
+
+
+def test_compute_brain_mask_rejects_unknown_kind():
+    """Pure-unit: kind validation runs before any disk access."""
+    with pytest.raises(ValueError) as ei:
+        compute_brain_mask(1, kind="bogus")
+    assert "bogus" in str(ei.value)
+    # Names the valid set for discoverability.
+    for k in ("cortex", "cortex_dil", "ncsnr", "r2"):
+        assert k in str(ei.value)
+
+
+@pytest.mark.cluster
+def test_compute_brain_mask_default_is_cortex_dil(aot_config):
+    """No kind → cortex_dil, the anatomical default."""
+    from AOTaccess.anatomy_access import AnatomyAccess
+
+    mask = compute_brain_mask(1, config=aot_config)
+    direct = AnatomyAccess(config=aot_config).read_gray_matter_mask(
+        1, resolution="2p0mm", variant="cortex_dil",
+    )
+    assert mask.dtype == bool
+    np.testing.assert_array_equal(mask, direct)
+
+
+@pytest.mark.cluster
+def test_compute_brain_mask_each_kind(aot_config):
+    """Each anatomical kind matches the corresponding AnatomyAccess read."""
+    from AOTaccess.anatomy_access import AnatomyAccess
+
+    ana = AnatomyAccess(config=aot_config)
+    for variant in ("cortex", "cortex_dil"):
+        np.testing.assert_array_equal(
+            compute_brain_mask(1, kind=variant, config=aot_config),
+            ana.read_gray_matter_mask(1, resolution="2p0mm", variant=variant),
+        )
+    # cortex_sm is thresholded internally at 0.5.
+    sm = ana.read_gray_matter_mask(1, resolution="2p0mm", variant="cortex_sm")
+    np.testing.assert_array_equal(
+        compute_brain_mask(1, kind="cortex_sm", config=aot_config), sm > 0.5
+    )
+
+
+@pytest.mark.cluster
+def test_compute_brain_mask_ncsnr_and_r2_alias(aot_config):
+    """`kind='r2'` is an alias for `kind='ncsnr'` → identical mask."""
+    a = compute_brain_mask(1, kind="ncsnr", config=aot_config)
+    b = compute_brain_mask(1, kind="r2", config=aot_config)
+    np.testing.assert_array_equal(a, b)
+    # And both equal the underlying primitive.
+    direct = compute_ncsnr_brain_mask(1, config=aot_config)
+    np.testing.assert_array_equal(a, direct)
+
+
+@pytest.mark.cluster
+def test_compute_brain_mask_ncsnr_threshold_passes_through(aot_config):
+    """`threshold=` reaches the NCSNR primitive."""
+    loose = compute_brain_mask(1, kind="ncsnr", threshold=0.0, config=aot_config)
+    tight = compute_brain_mask(1, kind="ncsnr", threshold=0.05, config=aot_config)
+    assert int(tight.sum()) < int(loose.sum())
+    assert (tight & ~loose).sum() == 0
+
+
+# ---------------------------------------------------------------------------
+# NCSNR primitive
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.cluster

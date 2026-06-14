@@ -8,6 +8,18 @@ Maintained per release. Currently pre-release; see the git log on the
 
 ## Unreleased
 
+- {func}`~AOTaccess.brain.compute_brain_mask` is now the canonical
+  brain-mask dispatcher — it picks the recipe by ``kind=``
+  (``"cortex_dil"`` default, plus ``"cortex"`` / ``"cortex_sm"`` /
+  ``"ncsnr"`` / ``"r2"``). The legacy single-session R² > 0 primitive
+  was renamed {func}`~AOTaccess.brain.compute_r2_brain_mask` so its
+  name matches what it does; the dispatcher and the renamed primitive
+  read consistently when you scan ``brain.py``. Existing callers of the
+  old single-session ``compute_brain_mask(sub, ses=1, ...)`` call
+  signature need to swap to ``compute_r2_brain_mask`` (one rename, no
+  signature change). :class:`~AOTaccess.subject.AOTSubject` delegates
+  through the same name-set internally; nothing changes at the
+  subject level.
 - Default brain mask flipped to the dilated FreeSurfer cortex GM
   (``"cortex_dil"``, ~98 k voxels at 2 mm).
   {class}`~AOTaccess.subject.AOTSubject` now takes a ``default_mask``
@@ -26,7 +38,7 @@ Maintained per release. Currently pre-release; see the git log on the
   (cached per ``threshold``). The legacy single-session R² > 0 mask is
   still reachable as
   {meth}`~AOTaccess.subject.AOTSubject.get_glmsingle_r2_mask` (and the
-  underlying {func}`~AOTaccess.brain.compute_brain_mask`) for
+  underlying {func}`~AOTaccess.brain.compute_r2_brain_mask`) for
   diagnostics.
 - Motion-energy features migrated to per-(video, direction, rate) HDF5.
   :meth:`~AOTaccess.stimulus_info_access.StimuliInfoAccess.read_motion_energy_features`
