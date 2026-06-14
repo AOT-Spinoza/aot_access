@@ -68,7 +68,25 @@ real but rarely makes the R² > 0 cut. The session-averaged NCSNR mask
 fixes both. The single-session R² > 0 mask is still reachable for
 diagnostics via
 {meth}`~AOTaccess.subject.AOTSubject.get_glmsingle_r2_mask` and as the
-underlying primitive {func}`~AOTaccess.brain.compute_brain_mask`.
+underlying primitive
+{func}`~AOTaccess.brain.compute_r2_brain_mask`.
+
+### One-shot use without an `AOTSubject`
+
+For quick scripts that don't want a full subject instance,
+{func}`~AOTaccess.brain.compute_brain_mask` is a free-function
+dispatcher with the same `kind=` choices:
+
+```python
+from AOTaccess.brain import compute_brain_mask
+bm = compute_brain_mask(1)                         # cortex_dil default
+bm = compute_brain_mask(1, kind="cortex")          # canonical cortex GM
+bm = compute_brain_mask(1, kind="ncsnr", threshold=0.05)  # tight signal mask
+```
+
+It returns the same arrays {meth}`AOTSubject.get_brain_mask` would,
+without per-instance caching — use `AOTSubject` when you'll touch the
+mask repeatedly.
 
 ## Gray-matter mask — a tighter working set
 

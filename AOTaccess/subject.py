@@ -20,8 +20,8 @@ from AOTaccess import discovery
 from AOTaccess.anatomy_access import AnatomyAccess
 from AOTaccess.bids_access import BidsAccess
 from AOTaccess.brain import (
-    compute_brain_mask,
     compute_ncsnr_brain_mask,
+    compute_r2_brain_mask,
     get_voxel_coordinates,
     to_nifti,
 )
@@ -154,7 +154,16 @@ class AOTSubject:
         return self._brain_mask
 
     def _compute_default_mask(self):
-        """Resolve ``self.default_mask`` to a 3-D boolean array."""
+        """Resolve ``self.default_mask`` to a 3-D boolean array.
+
+        Routes anatomical kinds through the cached
+        :meth:`get_gray_matter_mask` and signal kinds through the cached
+        :meth:`get_glmsingle_ncsnr_mask`, so repeated subject use shares
+        the same arrays as direct calls. (The free-function dispatcher
+        :func:`brain.compute_brain_mask` exists for callers without an
+        :class:`AOTSubject`; it has the same recipe behaviour but no
+        cache.)
+        """
         if self.default_mask in ("cortex", "cortex_dil"):
             return self.get_gray_matter_mask(variant=self.default_mask)
         if self.default_mask == "cortex_sm":
@@ -235,7 +244,7 @@ class AOTSubject:
         Cached per session.
         """
         if ses not in self._r2_mask_cache:
-            self._r2_mask_cache[ses] = compute_brain_mask(
+            self._r2_mask_cache[ses] = compute_r2_brain_mask(
                 self.sub, ses=ses, resolution=self.resolution,
                 glmtype=self.glmtype, glmsingle=self.glmsingle,
             )
