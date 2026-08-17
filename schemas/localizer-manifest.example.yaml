@@ -11,7 +11,7 @@
 manifest_schema_version: 1.0.0
 localizer: prf                         # matches the folder name under localizers/
 kind: parametric                       # 'parametric' (model-fit maps) | 'contrast' (GLM stat maps)
-description: Population receptive field mapping (prfpy model fits).
+description: Population receptive field mapping (braincoder model fits).
 session: ses-pRF
 
 subjects:                              # subjects this localizer has been run for
@@ -19,12 +19,16 @@ subjects:                              # subjects this localizer has been run fo
   - sub-002
   - sub-003
   - sub-004
+  - sub-005
+  - sub-006
   - sub-007
+  - sub-008
 
 # Default values for the free path-template parameters; a caller overrides any
 # of these per call. Every localizer carries its own sensible defaults.
 defaults:
   model: gauss
+  space: T1w
   resolution: 2p0mm
   runpart: all
   rec: nordicstc
@@ -33,6 +37,8 @@ defaults:
 models:
   gauss:
     full_name: 2D Gaussian pRF
+  dog:
+    full_name: Difference-of-Gaussians pRF
   norm:
     full_name: Divisive-normalization pRF
 
@@ -40,29 +46,49 @@ models:
 # `models` means model-independent). `template` names the path_templates entry;
 # the map name fills its `{map}` placeholder and is the on-disk filename suffix.
 maps:
-  r2:        {full_name: variance explained,      models: [gauss, norm], template: param_map}
-  ecc:       {full_name: eccentricity,            models: [gauss, norm], template: param_map}
-  polar:     {full_name: polar angle,             models: [gauss, norm], template: param_map}
-  prf_size:  {full_name: pRF size,                models: [gauss, norm], template: param_map}
-  prf_ampl:  {full_name: pRF amplitude,           models: [gauss, norm], template: param_map}
-  bold_bsl:  {full_name: BOLD baseline,           models: [gauss, norm], template: param_map}
-  x:         {full_name: pRF centre x,            models: [gauss, norm], template: param_map}
-  y:         {full_name: pRF centre y,            models: [gauss, norm], template: param_map}
-  hrf_deriv: {full_name: HRF derivative,          models: [gauss],       template: param_map}
-  hrf_dsip:  {full_name: HRF dispersion,          models: [gauss],       template: param_map}
-  hrf_delay: {full_name: HRF delay,               models: [norm],        template: param_map}
-  hrf_disp:  {full_name: HRF dispersion,          models: [norm],        template: param_map}
+  r2:        {full_name: variance explained,      models: [gauss, dog, norm], template: param_map}
+  ecc:       {full_name: eccentricity,            models: [gauss, dog, norm], template: param_map}
+  polar:     {full_name: polar angle,             models: [gauss, dog, norm], template: param_map}
+  prf_size:  {full_name: pRF size,                models: [gauss, dog, norm], template: param_map}
+  prf_ampl:  {full_name: pRF amplitude,           models: [gauss, dog, norm], template: param_map}
+  bold_bsl:  {full_name: BOLD baseline,           models: [gauss, dog, norm], template: param_map}
+  x:         {full_name: pRF centre x,            models: [gauss, dog, norm], template: param_map}
+  y:         {full_name: pRF centre y,            models: [gauss, dog, norm], template: param_map}
+  hrf_delay: {full_name: HRF delay,               models: [gauss, dog, norm], template: param_map}
+  hrf_disp:  {full_name: HRF dispersion,          models: [gauss, dog, norm], template: param_map}
+  srf_amplitude: {full_name: surround amplitude ratio, models: [dog],    template: param_map}
+  srf_size:      {full_name: surround size ratio,      models: [dog],    template: param_map}
   BDratio:   {full_name: normalization B/D ratio, models: [norm],        template: param_map}
-  surr_ampl: {full_name: surround amplitude,      models: [norm],        template: param_map}
+  surr_ampl: {full_name: surround amplitude,      models: [dog, norm],   template: param_map}
   surr_bsl:  {full_name: surround baseline,       models: [norm],        template: param_map}
-  surr_size: {full_name: surround size,           models: [norm],        template: param_map}
+  surr_size: {full_name: surround size,           models: [dog, norm],   template: param_map}
   neur_bsl:  {full_name: neural baseline,         models: [norm],        template: param_map}
   noiseceiling: {full_name: split-half noise ceiling, models: [], template: noiseceiling}
+  median:       {full_name: median time series,       models: [], template: summary}
+  medianpsc:    {full_name: median PSC time series,   models: [], template: summary}
+  noisepool:    {full_name: GLMsingle noise-pool mask, models: [], template: noisepool}
+  predictions: {full_name: cross-validated prediction, models: [gauss, norm], template: prediction}
+  residuals:   {full_name: cross-validated residual,   models: [gauss, norm], template: residual}
 
 path_templates:
   param_map:
-    template: sub-{sub}/prf_fits/params/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-T1w_res-{resolution}_desc-prf_params_{map}.nii.gz
-    parameters: [sub, map, model, resolution, runpart, rec]
+    template: sub-{sub}/space-{space}/res-{resolution}/fits/parameter_volumes/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-{space}_res-{resolution}_desc-prf_params_{map}.nii.gz
+    parameters: [sub, map, model, space, resolution, runpart, rec]
+  parameter_table:
+    template: sub-{sub}/space-{space}/res-{resolution}/fits/parameter_tables/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-{space}_res-{resolution}_desc-prf_params.tsv
+    parameters: [sub, model, space, resolution, runpart, rec]
+  prediction:
+    template: sub-{sub}/space-{space}/res-{resolution}/fits/predictions/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-{space}_res-{resolution}_desc-prf_params_predictions.nii.gz
+    parameters: [sub, model, space, resolution, runpart, rec]
+  residual:
+    template: sub-{sub}/space-{space}/res-{resolution}/fits/residuals/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{runpart}_model-{model}_stage-iter_space-{space}_res-{resolution}_desc-prf_params_residuals.nii.gz
+    parameters: [sub, model, space, resolution, runpart, rec]
   noiseceiling:
-    template: sub-{sub}/prep/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-noiseceiling_part-mag_bold_space-T1w_res-{resolution}.nii.gz
-    parameters: [sub, resolution, rec]
+    template: sub-{sub}/space-{space}/res-{resolution}/noise_ceiling/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-noiseceiling_part-mag_bold_space-{space}_res-{resolution}.nii.gz
+    parameters: [sub, space, resolution, rec]
+  summary:
+    template: sub-{sub}/space-{space}/res-{resolution}/preprocessing/summaries/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{map}_part-mag_bold_space-{space}_res-{resolution}.nii.gz
+    parameters: [sub, map, space, resolution, rec]
+  noisepool:
+    template: sub-{sub}/space-{space}/res-{resolution}/preprocessing/masks/sub-{sub}_space-{space}_res-{resolution}_glmsingle_noisepool.nii.gz
+    parameters: [sub, space, resolution]
