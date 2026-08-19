@@ -371,10 +371,15 @@ class StimuliInfoAccess:
                 stacklevel=2,
             )
             return np.load(npy_path)
+        hint = ""
+        if highest_freq != 16 and self._motion_energy_h5_path(
+            video_id, direction, 16
+        ).exists():
+            hint = " (16-Hz data exists for this video — try highest_freq=16)"
         raise DataNotFoundError(
             f"Motion-energy file not found for video={video_id}, "
             f"direction={direction!r}, highest_freq={highest_freq}: "
-            f"tried {h5_path} and {npy_path}"
+            f"tried {h5_path} and {npy_path}{hint}"
         )
 
     def read_motion_energy_summary(

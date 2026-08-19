@@ -8,6 +8,45 @@ Maintained per release. Currently pre-release; see the git log on the
 
 ## Unreleased
 
+- Adapted to the July/August 2026 dataset arrivals: sub-006 joined the
+  cohort across bids / aot_prep / glmsingle (13 sessions), subjects
+  003–008 gained ``ses-fLocDur`` localizer sessions plus completion
+  sessions 11/12, and the pRF localizer store migrated to a
+  ``sub-*/space-{space}/res-{resolution}`` layout with a new
+  ``res-1p25mm`` grid rolling out. The hardcoded discovery test now
+  expects subjects 1–8, and pRF cluster tests target subjects with
+  data (skipping the fit-map reads while the fitting pipeline
+  repopulates ``fits/`` — currently every fit lives in a
+  ``fits_old*`` rename that no manifest template reaches).
+- New condition-level localizer betas in the GLMsingle per_video store
+  (``Dur`` and ``fLoc`` subdirectories next to ``fw``/``rv``) are
+  readable via
+  {meth}`~AOTaccess.glmsingle_access.GLMSingleAccess.read_condition_betas`,
+  with {meth}`~AOTaccess.glmsingle_access.GLMSingleAccess.list_conditions`
+  enumerating the verbatim desc prefixes.
+- R² masking in {class}`~AOTaccess.prf_access.PrfAccess` is now NaN-fill
+  in both {meth}`~AOTaccess.prf_access.PrfAccess.read_param` and
+  {meth}`~AOTaccess.prf_access.PrfAccess.read_noiseceiling` (upstream had
+  changed only ``read_param``, leaving docstring, tests and the
+  noise-ceiling path on the old zero-fill contract). NaN keeps masked
+  voxels out of downstream statistics where 0 is a valid parameter value.
+- Named pRF readers ``read_srf_amplitude`` / ``read_srf_size`` cover the
+  DoG (and on-disk norm) surround-ratio maps;
+  {meth}`~AOTaccess.prf_access.PrfAccess.get_method_list` now reports
+  them. The manifest example drops phantom ``sub-002`` and declares
+  ``srf_amplitude``/``srf_size`` for ``norm`` too, matching disk.
+- {class}`~AOTaccess.roi_access.ROIAccess` raises
+  {class}`~AOTaccess.errors.DataNotFoundError` (instead of ``KeyError``)
+  for subjects missing from the ROI library manifest — e.g. sub-006
+  until the library is regenerated. Volume-mask docstrings now use the
+  canonical ``T1w``/``MNI`` space labels.
+- Removed ``AnatomyAccess._temp_read_crop_resampled_T1``: the 1.7 mm
+  fiducial grid no longer exists on disk for any subject (anat-3T holds
+  ``res-2p0mm`` and ``res-1p25mm`` for all eight subjects); use
+  {meth}`~AOTaccess.anatomy_access.AnatomyAccess.read_t1w`.
+- ``Config`` relative layout entries may list candidate paths;
+  ``AOTdesignsettings`` now resolves on both the VU share and Snellius
+  (folding in the ``snellius`` branch fix).
 - {func}`~AOTaccess.brain.compute_brain_mask` is now the canonical
   brain-mask dispatcher — it picks the recipe by ``kind=``
   (``"cortex_dil"`` default, plus ``"cortex"`` / ``"cortex_sm"`` /
