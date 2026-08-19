@@ -32,6 +32,8 @@ _VOLUME_METHODS = {
     "read_surround_baseline": "surr_bsl",
     "read_surround_size": "surr_size",
     "read_neuro_baseline": "neur_bsl",
+    "read_srf_amplitude": "srf_amplitude",
+    "read_srf_size": "srf_size",
 }
 
 
@@ -109,7 +111,7 @@ class PrfAccess:
         """Read a fitted pRF parameter map as an ndarray.
 
         With ``mask=True``, voxels whose R2 is below ``mask_r2_threshold`` are
-        zeroed (the R2 map itself is never masked).
+        set to NaN (the R2 map itself is never masked).
         """
         fit_params = self._fit_params(
             model, space, resolution, runpart, rec
@@ -169,6 +171,12 @@ class PrfAccess:
 
     def read_neuro_baseline(self, sub, model="norm", *args, **kwargs):
         return self.read_param(sub, "neur_bsl", model, *args, **kwargs)
+
+    def read_srf_amplitude(self, sub, model="dog", *args, **kwargs):
+        return self.read_param(sub, "srf_amplitude", model, *args, **kwargs)
+
+    def read_srf_size(self, sub, model="dog", *args, **kwargs):
+        return self.read_param(sub, "srf_size", model, *args, **kwargs)
 
     # Compatibility aliases for notebooks written before the braincoder HRF
     # parameter names were corrected.
@@ -258,7 +266,12 @@ class PrfAccess:
     def read_noiseceiling(self, sub, resolution="2p0mm", rec="nordicstc",
                           mask=False, mask_r2_threshold=0.1, space="T1w",
                           mask_model="gauss", mask_runpart="all"):
-        """Read the pRF-session split-half noise-ceiling map as an ndarray."""
+        """Read the pRF-session split-half noise-ceiling map as an ndarray.
+
+        With ``mask=True``, voxels whose R2 (from the ``mask_model`` fit) is
+        below ``mask_r2_threshold`` are set to NaN, matching
+        :meth:`read_param`.
+        """
         data = self.localizer.read_map(
             _LOCALIZER,
             sub,
@@ -276,5 +289,5 @@ class PrfAccess:
                     mask_model, space, resolution, mask_runpart, rec
                 ),
             )
-            data[r2 < mask_r2_threshold] = 0
+            data[r2 < mask_r2_threshold] = np.nan
         return data

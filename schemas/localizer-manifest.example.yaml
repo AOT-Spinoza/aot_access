@@ -16,7 +16,6 @@ session: ses-pRF
 
 subjects:                              # subjects this localizer has been run for
   - sub-001
-  - sub-002
   - sub-003
   - sub-004
   - sub-005
@@ -56,8 +55,8 @@ maps:
   y:         {full_name: pRF centre y,            models: [gauss, dog, norm], template: param_map}
   hrf_delay: {full_name: HRF delay,               models: [gauss, dog, norm], template: param_map}
   hrf_disp:  {full_name: HRF dispersion,          models: [gauss, dog, norm], template: param_map}
-  srf_amplitude: {full_name: surround amplitude ratio, models: [dog],    template: param_map}
-  srf_size:      {full_name: surround size ratio,      models: [dog],    template: param_map}
+  srf_amplitude: {full_name: surround amplitude ratio, models: [dog, norm], template: param_map}
+  srf_size:      {full_name: surround size ratio,      models: [dog, norm], template: param_map}
   BDratio:   {full_name: normalization B/D ratio, models: [norm],        template: param_map}
   surr_ampl: {full_name: surround amplitude,      models: [dog, norm],   template: param_map}
   surr_bsl:  {full_name: surround baseline,       models: [norm],        template: param_map}
