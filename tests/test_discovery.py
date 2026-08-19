@@ -8,8 +8,9 @@ from AOTaccess import discovery
 @pytest.mark.cluster
 def test_subjects_returns_known_ids(aot_config):
     subs = discovery.subjects(config=aot_config)
-    # All seven main-task subjects exist with GLMsingle outputs
-    assert subs == [1, 2, 3, 4, 5, 7, 8]
+    # All eight main-task subjects have GLMsingle outputs (sub-006 since
+    # July 2026)
+    assert subs == [1, 2, 3, 4, 5, 6, 7, 8]
 
 
 @pytest.mark.cluster
