@@ -9,6 +9,7 @@ tables, predictions, and residuals. New code can equally use
 """
 
 import pandas as pd
+import numpy as np
 
 from AOTaccess.errors import DataNotFoundError
 from AOTaccess.localizer_access import LocalizerAccess
@@ -118,7 +119,7 @@ class PrfAccess:
             r2 = self.localizer.read_map(
                 _LOCALIZER, sub, "r2", **fit_params
             )
-            data[r2 < mask_r2_threshold] = 0
+            data[r2 < mask_r2_threshold] = np.nan
         return data
 
     # Named readers retained for plotting notebooks that iterate over
