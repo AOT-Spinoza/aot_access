@@ -493,3 +493,84 @@ class GLMSingleAccess:
         if average_repeat:
             beta = beta.mean(axis=0)
         return beta
+
+    # ------------------------------------------------------------------
+    # condition-level localizer betas (per_video store, Dur / fLoc subdirs)
+    # ------------------------------------------------------------------
+    def _condition_dir(self, sub, task, resolution):
+        return (
+            self.video_betas_dir
+            / f"sub-{fmt_sub(sub)}"
+            / f"space-T1w_res-{resolution}"
+            / task
+        )
+
+    def get_condition_betas_path(
+        self,
+        sub: int,
+        task: str,
+        condition: str,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "2p0mm",
+    ):
+        """Path to condition-level localizer betas in the per_video store.
+
+        ``task`` is the localizer subdirectory ('Dur' or 'fLoc'; the fw/rv
+        siblings hold the per-video main-task betas). ``condition`` is the
+        verbatim desc prefix as returned by :meth:`list_conditions`, e.g.
+        'cond-02_frames-3_' (Dur) or 'adult_adult_vid_01_' (fLoc). Only
+        z-scored betas are produced for these condition stores.
+        """
+        model_entity = MODEL_ENTITY_MAP.get(glmtype, glmtype)
+        return self._condition_dir(sub, task, resolution) / (
+            f"sub-{fmt_sub(sub)}_space-T1w_res-{resolution}"
+            f"_model-{model_entity}_desc-{condition}betaszscore.nii.gz"
+        )
+
+    def read_condition_betas(
+        self,
+        sub: int,
+        task: str,
+        condition: str,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "2p0mm",
+    ):
+        """Read condition-level localizer betas (z-scored) as an ndarray."""
+        path = self.get_condition_betas_path(
+            sub, task, condition, glmtype, resolution
+        )
+        if not path.exists():
+            raise DataNotFoundError(
+                f"GLMsingle condition betas not found: {path} "
+                f"(sub={sub}, task={task}, condition={condition}, "
+                f"glmtype={glmtype}, resolution={resolution})"
+            )
+        return nib.load(path).get_fdata()
+
+    def list_conditions(
+        self,
+        sub: int,
+        task: str,
+        glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
+        resolution: str = "2p0mm",
+    ):
+        """List condition desc prefixes available for (sub, task, glm, res).
+
+        Returned strings feed :meth:`read_condition_betas` verbatim (they
+        keep any trailing underscore the on-disk desc tag carries).
+        """
+        import re
+        cond_dir = self._condition_dir(sub, task, resolution)
+        if not cond_dir.exists():
+            return []
+        model_entity = MODEL_ENTITY_MAP.get(glmtype, glmtype)
+        pat = re.compile(
+            rf"_model-{re.escape(model_entity)}"
+            rf"_desc-(.+?)betaszscore\.nii\.gz$"
+        )
+        conditions = set()
+        for f in cond_dir.iterdir():
+            m = pat.search(f.name)
+            if m:
+                conditions.add(m.group(1))
+        return sorted(conditions)
