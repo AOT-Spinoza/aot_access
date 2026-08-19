@@ -1,6 +1,7 @@
 """Tests for AnatomyAccess — FreeSurfer cortex gray-matter masks."""
 
 import numpy as np
+import nibabel as nib
 import pytest
 
 from AOTaccess.anatomy_access import AnatomyAccess
@@ -12,6 +13,33 @@ def test_gray_matter_mask_rejects_unknown_variant():
     a = AnatomyAccess()
     with pytest.raises(ValueError):
         a.gray_matter_mask_path(1, resolution="2p0mm", variant="nope")
+
+
+@pytest.mark.cluster
+def test_t1w_path_resolves(aot_config):
+    a = AnatomyAccess(config=aot_config)
+    path = a.t1w_path(1, resolution="2p0mm")
+    assert path.exists()
+    assert path.name == (
+        "sub-001_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+    )
+
+
+@pytest.mark.cluster
+def test_t1w_matches_functional_grid(aot_config):
+    """The T1 underlay and GLMsingle maps require no resampling."""
+    from AOTaccess.glmsingle_access import GLMSingleAccess
+
+    a = AnatomyAccess(config=aot_config)
+    glm = GLMSingleAccess(config=aot_config)
+    t1w = a.read_t1w(1, resolution="2p0mm")
+    nc_path = glm.get_noiseceiling_path(
+        1, 1, resolution="2p0mm", direction="fw"
+    )
+    nc = nib.load(nc_path)
+
+    assert t1w.shape == nc.shape
+    np.testing.assert_allclose(t1w.affine, nc.affine, atol=1e-5)
 
 
 @pytest.mark.cluster

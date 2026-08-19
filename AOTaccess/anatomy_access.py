@@ -85,21 +85,38 @@ class AnatomyAccess:
         return arr                   # soft mask → float
 
     # ------------------------------------------------------------------
-    # experimental: full T1w volume
+    # full T1w volume
     # ------------------------------------------------------------------
-    def _temp_read_crop_resampled_T1(self, sub):
-        """Read the cropped/resampled T1w image for a subject.
+    def t1w_path(self, sub, resolution="2p0mm"):
+        """Path to the cropped T1w anatomy on an AOT EPI grid.
 
-        Each subject has a single anatomy shared across all sessions.
+        The returned image shares its shape and affine with the corresponding
+        ``space-T1w_res-{resolution}`` functional derivatives.  This makes it
+        suitable as an anatomical underlay for GLMsingle maps without an
+        additional resampling step.
         """
-        sub = fmt_sub(sub)
-        anat_path = (
+        sub_t = fmt_sub(sub)
+        return (
             self.config.anatomy_root()
-            / f"sub-{sub}"
+            / f"sub-{sub_t}"
             / "fiducial"
-            / "res-1p7mm"
-            / f"sub-{sub}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
+            / f"res-{resolution}"
+            / f"sub-{sub_t}_ses-3Tanat_T1w_FS_T2BM_crop_resampled.nii.gz"
         )
-        if not anat_path.exists():
-            raise DataNotFoundError(f"Anatomy T1w not found: {anat_path}")
-        return nib.load(anat_path)
+
+    def read_t1w(self, sub, resolution="2p0mm"):
+        """Read the cropped T1w anatomy on the requested EPI grid."""
+        path = self.t1w_path(sub, resolution=resolution)
+        if not path.exists():
+            raise DataNotFoundError(
+                f"Anatomy T1w not found: {path} "
+                f"(sub={sub}, resolution={resolution})"
+            )
+        return nib.load(path)
+
+    def _temp_read_crop_resampled_T1(self, sub):
+        """Backward-compatible reader for the historical 1.7 mm grid.
+
+        Prefer :meth:`read_t1w`, which accepts an explicit resolution.
+        """
+        return self.read_t1w(sub, resolution="1p7mm")
