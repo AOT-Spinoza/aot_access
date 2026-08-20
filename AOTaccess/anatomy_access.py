@@ -113,10 +113,3 @@ class AnatomyAccess:
                 f"(sub={sub}, resolution={resolution})"
             )
         return nib.load(path)
-
-    def _temp_read_crop_resampled_T1(self, sub):
-        """Backward-compatible reader for the historical 1.7 mm grid.
-
-        Prefer :meth:`read_t1w`, which accepts an explicit resolution.
-        """
-        return self.read_t1w(sub, resolution="1p7mm")

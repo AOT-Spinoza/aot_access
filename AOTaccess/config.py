@@ -24,6 +24,9 @@ _SETTINGS_ENV = "AOT_SETTINGS"
 _DEFAULT_SETTINGS = Path(__file__).resolve().parent / "settings.yml"
 
 # Canonical location of each store relative to a dataset root (root_dir mode).
+# A tuple lists candidates tried in order (first existing wins, else the
+# first) — AOTdesignsettings sits at different depths on the VU share and
+# on Snellius.
 _RELATIVE_LAYOUT = {
     "glmsingle": "derivatives/glmsingle",
     "preproced": "derivatives/aot_prep",
@@ -33,7 +36,10 @@ _RELATIVE_LAYOUT = {
     "video_annotations": "derivatives/stimuli/annotations",
     "roi": "derivatives/roi",
     "localizers": "derivatives/localizers",
-    "AOTdesignsettings": "code/arrow_of_time_experiment/aot/data/experiment/settings/main",
+    "AOTdesignsettings": (
+        "code/arrow_of_time_experiment/aot/data/experiment/settings/main",
+        "aot/data/experiment/settings/main",
+    ),
 }
 
 # Anatomy roots tried in order — dual-cluster (VU /research, Snellius /projects).
@@ -78,7 +84,13 @@ class Config:
                     f"No relative layout known for store '{key}' (root_dir mode). "
                     f"Known: {sorted(_RELATIVE_LAYOUT)}"
                 )
-            return self.root_dir / _RELATIVE_LAYOUT[key]
+            layout = _RELATIVE_LAYOUT[key]
+            if isinstance(layout, tuple):
+                for candidate in layout:
+                    if (self.root_dir / candidate).exists():
+                        return self.root_dir / candidate
+                return self.root_dir / layout[0]
+            return self.root_dir / layout
         paths = self.settings.get("paths", {})
         if key not in paths:
             raise ConfigError(

@@ -43,16 +43,17 @@ and the params used.
 
 For pRF specifically there's a thin
 {class}`~AOTaccess.prf_access.PrfAccess` that keeps the familiar
-`read_param` / `read_noiseceiling` names and adds optional R² masking:
+`read_param` / `read_noiseceiling` names and adds optional R² masking
+(sub-threshold voxels are set to NaN):
 
 ```python
 from AOTaccess.prf_access import PrfAccess
 p = PrfAccess()
 
 p.params(model="gauss")
-ecc = p.read_param(sub=1, param="ecc")
-ecc_masked = p.read_param(sub=1, param="ecc", mask=True, mask_r2_threshold=0.1)
-nc = p.read_noiseceiling(sub=1)
+ecc = p.read_param(sub=3, param="ecc")
+ecc_masked = p.read_param(sub=3, param="ecc", mask=True, mask_r2_threshold=0.1)
+nc = p.read_noiseceiling(sub=3)
 ```
 
 Under the hood it just calls

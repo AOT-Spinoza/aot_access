@@ -128,7 +128,7 @@ class ROIAccess:
         otherwise returns every ROI defined in the library.
         """
         if subject is not None:
-            return list(self.manifest["subjects"][self._sub_key(subject)]["rois"])
+            return list(self._sub_entry(subject)["rois"])
         return list(self.manifest["rois"])
 
     def roi_info(self, roi: str):
@@ -137,8 +137,7 @@ class ROIAccess:
 
     def missing_rois(self, subject):
         """ROIs the manifest reports as not produced for a subject."""
-        entry = self.manifest["subjects"][self._sub_key(subject)]
-        return entry.get("missing_rois", {})
+        return self._sub_entry(subject).get("missing_rois", {})
 
     def template_keys(self):
         """List the path-template names defined in the manifest."""
@@ -158,6 +157,22 @@ class ROIAccess:
     def _sub_key(self, sub):
         """Subject key as used in the manifest 'subjects' mapping, 'sub-001'."""
         return f"sub-{self._sub_token(sub)}"
+
+    def _sub_entry(self, sub):
+        """Manifest entry for a subject; DataNotFoundError if absent.
+
+        Subjects can exist in other stores (e.g. GLMsingle) before the ROI
+        library has been regenerated for them — sub-006 as of Aug 2026.
+        """
+        key = self._sub_key(sub)
+        entry = self.manifest["subjects"].get(key)
+        if entry is None:
+            raise DataNotFoundError(
+                f"Subject {key} is not in the ROI library manifest "
+                f"(available: {sorted(self.manifest['subjects'])}); "
+                f"the ROI store may not have been regenerated for it yet."
+            )
+        return entry
 
     # ------------------------------------------------------------------
     # generic path resolution
@@ -198,8 +213,8 @@ class ROIAccess:
         """Path to a single-ROI binary mask.
 
         ``hemi`` None resolves the bilateral mask (union of L and R);
-        'L'/'R' resolves the per-hemisphere mask. ``space`` is 'fsnative'
-        (the EPI grid) or 'mni'.
+        'L'/'R' resolves the per-hemisphere mask. ``space`` is 'T1w'
+        (the EPI grid) or 'MNI'.
         """
         sp = _resolve_volume_space(space)
         kind = "per_hemi" if hemi is not None else "bilateral"
@@ -212,7 +227,7 @@ class ROIAccess:
                   res="2p0mm", cons="balanced", hemi=None):
         """Load a single-ROI mask as a boolean ndarray.
 
-        With ``space='fsnative'`` at a matching resolution the result indexes
+        With ``space='T1w'`` at a matching resolution the result indexes
         GLMsingle betas / preprocessed BOLD directly (same voxel grid).
         """
         path = self.mask_path(sub, roi, atlas, space, res, cons, hemi)
