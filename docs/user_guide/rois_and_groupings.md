@@ -14,11 +14,14 @@ follows the structure the {mod}`aot_rois` toolchain emits.
 - **Spaces** — `T1w` (subject native volume), `MNI` (group volume),
   `fsnative` / `fsaverage` (surfaces), `fsLR` (CIFTI).
 - **Conservativeness levels** — `strict`, `balanced`, `liberal`, `thick`,
-  plus the four pycortex samplers (`pyc_nearest`, `pyc_trilinear`,
-  `pyc_line_nearest`, `pyc_line_trilinear`).
-- **Resolutions** — per space (e.g. `T1w: [1p25mm, 2p0mm]`).
+  the four pycortex samplers (`pyc_nearest`, `pyc_trilinear`,
+  `pyc_line_nearest`, `pyc_line_trilinear`), and `labels` (`fs_aseg` only).
+- **Resolutions** — per space: `T1w: [1p25mm, 2p0mm]` but `MNI: [1p25mm]`.
 - **`path_templates`** — the BIDS-canonical filename templates the toolchain
   emits; the access layer resolves any path through them.
+- **`build_status`** — the toolchain's own report on the last build
+  (`completed`, `failed_outputs`, `warnings`), surfaced by
+  {meth}`~AOTaccess.roi_access.ROIAccess.build_status` and friends.
 
 ## Reading a single ROI
 
@@ -29,21 +32,40 @@ sub = AOTSubject(1)
 mask = sub.get_roi_mask("V1v")         # 3-D bool, on the T1w 2p0mm grid by default
 ```
 
-Defaults: `atlas="wang_2015"`, `space="T1w"`, `cons="balanced"`, `hemi=None`
-(bilateral). Override any of them:
+Defaults: `atlas="wang_2015"`, `space="T1w"`, `hemi=None` (bilateral), with
+`res` and `cons` resolved against what the store actually holds. Override any
+of them:
 
 ```python
 sub.get_roi_mask("FFA1", atlas="rosenke_2021", cons="strict", hemi="R")
 sub.get_roi_mask("V1v", res="1p25mm")               # different EPI grid
 ```
 
+Spaces and atlases are not built uniformly, so a single global default cannot
+be right everywhere: MNI volumes exist only at `1p25mm`, and `fs_aseg` ships
+only `cons="labels"` where the surface-sampled atlases ship the other eight.
+Leaving `res`/`cons` unset picks the built variant; ask the store directly
+when you want to know what that is:
+
+```python
+roi.available_resolutions(6, atlas="wang_2015")     # ['1p25mm', '2p0mm']
+roi.available_cons(6, atlas="fs_aseg")              # ['labels']
+roi.cons_info("labels")["description"]              # why that level exists
+```
+
 ## Flexible queries — name / list / "all"
 
 ```python
 sub.get_roi_mask("V1v")                              # single name
-sub.get_roi_mask("all")                              # every available ROI, unioned
+sub.get_roi_mask("all")                              # every ROI of `atlas`, unioned
+sub.get_roi_mask("all", atlas="glasser_2016")        # ... of a different atlas
 sub.get_roi_mask(["V1v", "V1d", "V2v", "V2d"])       # custom union
 ```
+
+`"all"` means every ROI **of the requested atlas** available for the subject.
+{meth}`~AOTaccess.roi_access.ROIAccess.rois` pools names across all atlases, so
+use {meth}`~AOTaccess.roi_access.ROIAccess.atlas_rois` when you need the
+per-atlas partition.
 
 The result is always a single 3-D bool mask — the union of every match,
 intersected with the subject's brain mask. Use it directly with
@@ -77,8 +99,14 @@ roi = ROIAccess()
 
 roi.atlases()
 roi.rois(subject="sub-001")
+roi.atlas_rois("wang_2015")                         # just this atlas's ROIs
 roi.conservativeness_levels()
 roi.template_keys()                                 # all path templates in the manifest
+
+roi.provenance()                                    # toolchain, schema version, build date
+roi.is_complete()                                   # did the last build finish?
+roi.build_warnings()                                # what the toolchain flagged
+roi.failed_outputs()                                # products it could not write
 
 roi.mask_path(1, "V1v", atlas="wang_2015")          # the resolved Path
 roi.read_mask(1, "V1v")                             # the boolean ndarray

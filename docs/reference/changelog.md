@@ -8,6 +8,47 @@ Maintained per release. Currently pre-release; see the git log on the
 
 ## Unreleased
 
+- sub-006 is now a first-class ROI subject. The `aot_rois` toolchain
+  added it to the library on 2026-08-21 (556 ROIs, matching sub-005;
+  `missing_rois` empty) and bumped the manifest to schema 1.1.0. Its
+  masks land on the (65, 75, 86) grid its GLMsingle betas use, so
+  {meth}`~AOTaccess.subject.AOTSubject.get_roi_mask` indexes them
+  directly with no resampling.
+- Volumetric ``res`` and ``cons`` now default to what the store actually
+  offers instead of one global guess. Spaces and atlases are not built
+  uniformly — MNI volumes exist only at ``1p25mm``, and ``fs_aseg``
+  ships only ``cons="labels"`` — so the previous ``res="2p0mm"`` /
+  ``cons="balanced"`` defaults resolved to nonexistent paths for
+  ``space="MNI"`` and ``atlas="fs_aseg"`` for every subject. Both now
+  resolve; explicit arguments behave as before.
+- New store-backed availability queries:
+  {meth}`~AOTaccess.roi_access.ROIAccess.available_atlases`,
+  {meth}`~AOTaccess.roi_access.ROIAccess.available_resolutions` and
+  {meth}`~AOTaccess.roi_access.ROIAccess.available_cons`, plus
+  {meth}`~AOTaccess.roi_access.ROIAccess.cons_info` for a level's
+  description/threshold/sampling and
+  {meth}`~AOTaccess.roi_access.ROIAccess.atlas_rois` for the per-atlas
+  ROI list (``rois()`` pools names across atlases).
+- Manifest provenance and build reporting surfaced from schema 1.1.0:
+  {meth}`~AOTaccess.roi_access.ROIAccess.provenance`,
+  {meth}`~AOTaccess.roi_access.ROIAccess.schema_version`,
+  {meth}`~AOTaccess.roi_access.ROIAccess.build_status`,
+  {meth}`~AOTaccess.roi_access.ROIAccess.build_warnings`,
+  {meth}`~AOTaccess.roi_access.ROIAccess.failed_outputs` and
+  {meth}`~AOTaccess.roi_access.ROIAccess.is_complete`. The store is
+  rebuilt in place, so these are how you tell whether the tree you are
+  reading is settled. All degrade cleanly on pre-1.1.0 manifests.
+- Fixed {meth}`~AOTaccess.subject.AOTSubject.get_roi_mask` with
+  ``query="all"``: it expanded to every ROI name in the manifest, pooled
+  across atlases, then read them all under a single ``atlas=``, failing
+  on the first foreign name. It now expands to the requested atlas's
+  ROIs only.
+- Fixed {meth}`~AOTaccess.group.AOTGroup.shared_sessions` raising
+  ``TypeError`` for any cohort sharing a labelled session: session ids
+  mix ints and strings, and ``"fLocDur"`` cannot be sorted against
+  ``1``. Ints now sort first, then labels, matching
+  {func}`~AOTaccess.discovery.sessions`. Latent until sub-006 and its
+  contemporaries gained ``ses-fLocDur``.
 - Adapted to the July/August 2026 dataset arrivals: sub-006 joined the
   cohort across bids / aot_prep / glmsingle (13 sessions), subjects
   003–008 gained ``ses-fLocDur`` localizer sessions plus completion
