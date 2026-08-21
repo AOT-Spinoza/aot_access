@@ -102,6 +102,16 @@ class ROIAccess:
                 self._manifest = yaml.safe_load(f)
         return self._manifest
 
+    def refresh(self):
+        """Drop the cached manifest and directory listings.
+
+        The ROI store is rebuilt in place, so a long-running process that
+        first read it mid-build would otherwise keep serving what it saw
+        then. Call this after a build lands to pick up the new state.
+        """
+        self._manifest = None
+        self._cons_cache.clear()
+
     # ------------------------------------------------------------------
     # discovery
     # ------------------------------------------------------------------
@@ -287,8 +297,11 @@ class ROIAccess:
 
     def available_atlases(self, sub, space: str = "T1w"):
         """Atlases with volumetric products on disk for one subject."""
-        key = _resolve_volume_space(space)
-        base = self.roi_dir / self._sub_key(sub) / f"{key}_volume"
+        return self._available_atlases(sub, _resolve_volume_space(space))
+
+    def _available_atlases(self, sub, space_key):
+        """:meth:`available_atlases` keyed by a resolved space prefix."""
+        base = self.roi_dir / self._sub_key(sub) / f"{space_key}_volume"
         if not base.exists():
             return []
         return sorted(
@@ -401,12 +414,35 @@ class ROIAccess:
         if _PREFERRED_CONS in levels or not levels:
             return _PREFERRED_CONS
         if len(levels) == 1:
-            return levels[0]
+            if self._cons_is_exclusive(sub, space_key, res, levels[0]):
+                return levels[0]
+            # An ordinary level standing alone means the directory is still
+            # being written — fall back so the caller gets a path-not-found
+            # rather than a mask at a conservativeness they did not ask for.
+            return _PREFERRED_CONS
         raise ValueError(
             f"No '{_PREFERRED_CONS}' conservativeness for atlas {atlas!r} "
             f"(sub={sub}, space={space_key}); pass cons= explicitly. "
             f"Available: {levels}."
         )
+
+    def _cons_is_exclusive(self, sub, space_key, res, level):
+        """Whether ``level`` is special-purpose rather than interchangeable.
+
+        The manifest lists conservativeness levels globally, not per atlas,
+        so the store itself has to say which are exclusive. A level that
+        appears *alongside* the preferred one for some other atlas of this
+        subject is an ordinary alternative (``strict``, ``liberal``,
+        ``thick``, the ``pyc_*`` samplers) — seeing it alone means the
+        directory is mid-write. A level that never co-occurs with it, as
+        ``fs_aseg``'s ``labels`` never does, really is its atlas's only
+        level.
+        """
+        for other in self._available_atlases(sub, space_key):
+            levels = self._available_cons(sub, other, space_key, res)
+            if level in levels and _PREFERRED_CONS in levels:
+                return False
+        return True
 
     # ------------------------------------------------------------------
     # generic path resolution

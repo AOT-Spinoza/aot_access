@@ -90,6 +90,49 @@ def test_empty_listing_is_not_cached(synthetic_roi):
     assert r.available_cons(1, "later") == ["balanced"]
 
 
+def test_first_build_partial_atlas_does_not_substitute_a_wrong_level(
+    synthetic_roi,
+):
+    """The whole atlas is mid-write, at every resolution.
+
+    The toolchain writes cons dirs in order (strict first), so a
+    first-ever build passes through a window where an atlas shows only
+    'strict'. That must not read as an atlas that ships one level:
+    'strict' co-occurs with 'balanced' elsewhere in the store, so it is
+    an ordinary alternative, not an exclusive one.
+    """
+    vol = synthetic_roi / "derivatives/roi/sub-001/fsnative_volume"
+    (vol / "atlas-fresh/res-2p0mm/cons-strict").mkdir(parents=True)
+    (vol / "atlas-demo/res-2p0mm/cons-strict").mkdir(parents=True)
+
+    r = ROIAccess(root_dir=synthetic_roi)
+    assert r.available_cons(1, "fresh") == ["strict"]
+    # falls back to the preferred level -> loud path-not-found, not a
+    # silently tighter mask
+    assert "cons-balanced" in r.mask_path(1, "AAA", atlas="fresh").parts
+    with pytest.raises(DataNotFoundError):
+        r.read_mask(1, "AAA", atlas="fresh")
+
+    # ... while a genuinely exclusive level is still substituted
+    assert "cons-labels" in r.mask_path(1, "SSS", atlas="seg").parts
+
+
+def test_refresh_drops_cached_listings(synthetic_roi):
+    """A process that read mid-build must be able to recover."""
+    r = ROIAccess(root_dir=synthetic_roi)
+    partial = (synthetic_roi / "derivatives/roi/sub-001/fsnative_volume"
+               / "atlas-demo/res-2p0mm/cons-strict")
+    partial.mkdir(parents=True)
+    assert set(r.available_cons(1, "demo")) == {"balanced", "strict"}
+
+    (partial.parent / "cons-liberal").mkdir()
+    assert set(r.available_cons(1, "demo")) == {"balanced", "strict"}  # cached
+    r.refresh()
+    assert set(r.available_cons(1, "demo")) == {
+        "balanced", "strict", "liberal"
+    }
+
+
 def test_availability_queries(synthetic_roi):
     r = ROIAccess(root_dir=synthetic_roi)
     assert r.available_atlases(1) == ["demo", "seg"]
