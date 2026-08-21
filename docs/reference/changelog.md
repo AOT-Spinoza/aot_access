@@ -21,6 +21,17 @@ Maintained per release. Currently pre-release; see the git log on the
   ``cons="balanced"`` defaults resolved to nonexistent paths for
   ``space="MNI"`` and ``atlas="fs_aseg"`` for every subject. Both now
   resolve; explicit arguments behave as before.
+- The ROI store is rebuilt in place, so the ``cons`` resolver never
+  substitutes an *ordinary* level read from a partial directory listing:
+  the toolchain writes levels in order, and a first-ever build passes
+  through a window where an atlas shows only ``strict``. A level that
+  co-occurs with ``balanced`` elsewhere in the subject's store is
+  interchangeable and standing alone means mid-write (fall back, get a
+  path-not-found); one that never co-occurs with it — ``fs_aseg``'s
+  ``labels`` — really is its atlas's only level and is substituted.
+  {meth}`~AOTaccess.roi_access.ROIAccess.refresh` drops the cached
+  manifest and listings so a long-running process can pick up a build
+  that landed under it.
 - New store-backed availability queries:
   {meth}`~AOTaccess.roi_access.ROIAccess.available_atlases`,
   {meth}`~AOTaccess.roi_access.ROIAccess.available_resolutions` and
