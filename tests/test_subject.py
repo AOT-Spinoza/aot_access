@@ -10,38 +10,48 @@ from AOTaccess.subject import AOTSubject
 
 
 class _StubRoi:
-    """Stand-in for ROIAccess.rois used by _resolve_roi_query 'all' branch."""
+    """Stand-in for ROIAccess used by the _resolve_roi_query 'all' branch.
+
+    Mirrors the real manifest: rois() pools names across atlases, while
+    atlas_rois() partitions them per atlas.
+    """
     def rois(self, subject=None):
         return ["A", "B", "C"]
 
+    def atlas_rois(self, atlas):
+        return {"demo": ["A", "B", "C"], "other": ["C", "D"]}[atlas]
 
-def test_resolve_roi_query_single_name():
+
+def _stub_subject():
     s = AOTSubject.__new__(AOTSubject)
     s.roi = _StubRoi()
     s.sub = 1
-    assert s._resolve_roi_query("V1v") == ["V1v"]
+    return s
+
+
+def test_resolve_roi_query_single_name():
+    assert _stub_subject()._resolve_roi_query("V1v", "demo") == ["V1v"]
 
 
 def test_resolve_roi_query_all():
-    s = AOTSubject.__new__(AOTSubject)
-    s.roi = _StubRoi()
-    s.sub = 1
-    assert s._resolve_roi_query("all") == ["A", "B", "C"]
+    assert _stub_subject()._resolve_roi_query("all", "demo") == ["A", "B", "C"]
+
+
+def test_resolve_roi_query_all_is_restricted_to_the_atlas():
+    """'all' must not expand to ROIs another atlas owns."""
+    assert _stub_subject()._resolve_roi_query("all", "other") == ["C"]
 
 
 def test_resolve_roi_query_list_dedupes_and_preserves_order():
-    s = AOTSubject.__new__(AOTSubject)
-    s.roi = _StubRoi()
-    s.sub = 1
-    assert s._resolve_roi_query(["X", "all", "X"]) == ["X", "A", "B", "C"]
+    s = _stub_subject()
+    assert s._resolve_roi_query(["X", "all", "X"], "demo") == [
+        "X", "A", "B", "C"
+    ]
 
 
 def test_resolve_roi_query_rejects_bad_type():
-    s = AOTSubject.__new__(AOTSubject)
-    s.roi = _StubRoi()
-    s.sub = 1
     with pytest.raises(TypeError):
-        s._resolve_roi_query(123)
+        _stub_subject()._resolve_roi_query(123, "demo")
 
 
 # ----- cluster integration tests --------------------------------------------

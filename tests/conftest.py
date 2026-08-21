@@ -97,25 +97,56 @@ def synthetic_localizers(tmp_path):
 
 @pytest.fixture
 def synthetic_roi(tmp_path):
-    """A minimal roi/ store with one 'demo' atlas and one ROI mask.
+    """A minimal roi/ store modelling the real one's asymmetries.
 
+    Two atlases: 'demo' (built at both resolutions, level 'balanced') and
+    'seg' (an fs_aseg stand-in: T1w-only, sole level 'labels'), so the
+    space-aware ``res`` and atlas-aware ``cons`` defaults are exercised.
     Laid out under ``derivatives/`` to match Config's root_dir-mode layout.
     """
     roi = tmp_path / "derivatives" / "roi"
+    volume_params = ["sub", "atlas", "roi", "res", "cons"]
     manifest = {
-        "atlases": {"demo": {"full_name": "demo atlas"}},
-        "rois": {"AAA": {"full_name": "AAA", "source": "atlas"}},
-        "subjects": {"sub-001": {"rois": ["AAA"], "missing_rois": {}}},
-        "spaces": ["MNI152NLin2009cAsym"],
-        "resolutions": {"mni": ["1p25mm"], "fsnative": ["2p0mm"]},
-        "conservativeness_levels": {"balanced": {"threshold": 0.5}},
+        "manifest_schema_version": "1.1.0",
+        "toolchain_version": "0.1.0",
+        "generated_at": "2026-08-21T16:22:48Z",
+        "generated_by": "aot_rois 0.1.0",
+        "dataset": {"name": "synthetic ROI library"},
+        "atlases": {
+            "demo": {"full_name": "demo atlas", "rois": ["AAA"]},
+            "seg": {"full_name": "segmentation atlas", "rois": ["SSS"]},
+        },
+        "rois": {
+            "AAA": {"full_name": "AAA", "source": "atlas"},
+            "SSS": {"full_name": "SSS", "source": "fs_aseg"},
+        },
+        "subjects": {"sub-001": {"rois": ["AAA", "SSS"], "missing_rois": {}}},
+        "spaces": ["fsnative", "MNI152NLin2009cAsym"],
+        "resolutions": {"mni": ["1p25mm"], "fsnative": ["1p25mm", "2p0mm"]},
+        "conservativeness_levels": {
+            "balanced": {"threshold": 0.5, "description": "default"},
+            "labels": {"threshold": 0.5, "description": "seg-only"},
+        },
+        "build_status": {
+            "completed": True,
+            "hashes_computed": False,
+            "failed_outputs": [],
+            "warnings": [{"code": "validation", "message": "1 check failed"}],
+        },
         "path_templates": {
             "mni_volume_mask_bilateral": {
                 "template": (
                     "sub-{sub}/mni_volume/atlas-{atlas}/res-{res}/cons-{cons}/"
                     "sub-{sub}_atlas-{atlas}_label-{roi}_res-{res}_cons-{cons}_mask.nii.gz"
                 ),
-                "parameters": ["sub", "atlas", "roi", "res", "cons"],
+                "parameters": volume_params,
+            },
+            "fsnative_volume_mask_bilateral": {
+                "template": (
+                    "sub-{sub}/fsnative_volume/atlas-{atlas}/res-{res}/cons-{cons}/"
+                    "sub-{sub}_atlas-{atlas}_label-{roi}_res-{res}_cons-{cons}_mask.nii.gz"
+                ),
+                "parameters": volume_params,
             },
         },
     }
@@ -125,6 +156,16 @@ def synthetic_roi(tmp_path):
     _save_nii(
         roi / "sub-001/mni_volume/atlas-demo/res-1p25mm/cons-balanced/"
         "sub-001_atlas-demo_label-AAA_res-1p25mm_cons-balanced_mask.nii.gz",
+        mask,
+    )
+    _save_nii(
+        roi / "sub-001/fsnative_volume/atlas-demo/res-2p0mm/cons-balanced/"
+        "sub-001_atlas-demo_label-AAA_res-2p0mm_cons-balanced_mask.nii.gz",
+        mask,
+    )
+    _save_nii(
+        roi / "sub-001/fsnative_volume/atlas-seg/res-2p0mm/cons-labels/"
+        "sub-001_atlas-seg_label-SSS_res-2p0mm_cons-labels_mask.nii.gz",
         mask,
     )
     return tmp_path

@@ -32,6 +32,21 @@ def test_group_shared_sessions(aot_config):
 
 
 @pytest.mark.cluster
+def test_group_shared_sessions_with_labelled_sessions(aot_config):
+    """Cohorts sharing a labelled session mix ints and strings.
+
+    sub-006 and its contemporaries have 'fLocDur'; sorting that against
+    the numeric sessions used to raise TypeError.
+    """
+    g = AOTGroup([5, 6], config=aot_config)
+    shared = g.shared_sessions()
+    assert shared[:12] == list(range(1, 13))
+    assert "fLocDur" in shared
+    # ints first, then labels — no mixed-type comparison
+    assert all(isinstance(s, int) for s in shared[:12])
+
+
+@pytest.mark.cluster
 def test_group_broadcast_get_video_betas(aot_config):
     g = AOTGroup([1, 2], config=aot_config)
     # Pick a video both subjects saw (different subjects see different
