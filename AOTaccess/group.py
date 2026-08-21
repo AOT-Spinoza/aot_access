@@ -61,9 +61,19 @@ class AOTGroup:
         return sorted(set.intersection(*sets)) if sets else []
 
     def shared_sessions(self):
-        """Main-task sessions present for every subject in the cohort."""
+        """Sessions present for every subject in the cohort.
+
+        Session ids are mixed: ints for main-task sessions, strings for
+        labelled ones (``"pRF"``, ``"fLocDur"``). They sort ints first,
+        matching :func:`~AOTaccess.discovery.sessions`.
+        """
         sets = [set(s.sessions()) for s in self.subjects.values()]
-        return sorted(set.intersection(*sets)) if sets else []
+        if not sets:
+            return []
+        shared = set.intersection(*sets)
+        ints = sorted(x for x in shared if isinstance(x, int))
+        labels = sorted(str(x) for x in shared if not isinstance(x, int))
+        return ints + labels
 
     # ------------------------------------------------------------------
     # broadcast getters — each returns {sub: per-subject result}
