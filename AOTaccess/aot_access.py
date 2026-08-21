@@ -151,7 +151,7 @@ class AOTAccess:
         roi: str,
         atlas: str = "wang_2015",
         resolution: str = "2p0mm",
-        cons: str = "balanced",
+        cons: str = None,
         hemi: str = None,
     ):
         """
@@ -160,6 +160,10 @@ class AOTAccess:
         The mask comes from the ROI library's fsnative volume space, which is
         the same voxel grid as the GLMsingle betas and preprocessed BOLD at the
         matching resolution, so it indexes those arrays directly.
+
+        ``cons=None`` takes the store's default for this atlas — not every
+        atlas ships every conservativeness level (``fs_aseg`` has only
+        ``'labels'``).
         """
         return self.roi_access.read_mask(
             sub=sub,
@@ -177,7 +181,7 @@ class AOTAccess:
         ses: int,
         roi: str,
         atlas: str = "wang_2015",
-        cons: str = "balanced",
+        cons: str = None,
         hemi: str = None,
         glmtype: str = "TYPED_FITHRF_GLMDENOISE_RR",
         resolution: str = "2p0mm",
