@@ -65,7 +65,6 @@ maps:
   noiseceiling: {full_name: split-half noise ceiling, models: [], template: noiseceiling}
   median:       {full_name: median time series,       models: [], template: summary}
   medianpsc:    {full_name: median PSC time series,   models: [], template: summary}
-  noisepool:    {full_name: GLMsingle noise-pool mask, models: [], template: noisepool}
   predictions: {full_name: cross-validated prediction, models: [gauss, norm], template: prediction}
   residuals:   {full_name: cross-validated residual,   models: [gauss, norm], template: residual}
 
@@ -88,6 +87,3 @@ path_templates:
   summary:
     template: sub-{sub}/space-{space}/res-{resolution}/preprocessing/summaries/sub-{sub}_ses-pRF_task-pRF_rec-{rec}_run-{map}_part-mag_bold_space-{space}_res-{resolution}.nii.gz
     parameters: [sub, map, space, resolution, rec]
-  noisepool:
-    template: sub-{sub}/space-{space}/res-{resolution}/preprocessing/masks/sub-{sub}_space-{space}_res-{resolution}_glmsingle_noisepool.nii.gz
-    parameters: [sub, space, resolution]

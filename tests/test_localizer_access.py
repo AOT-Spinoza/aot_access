@@ -76,21 +76,20 @@ def test_prf_median_timeseries(aot_config):
     assert medianpsc.ndim == 4 and medianpsc.shape[:3] == (65, 75, 86)
 
 
-@pytest.mark.cluster
-def test_prf_noisepool_mask(aot_config):
-    """The GLMsingle noise-pool mask reads where the pipeline wrote one.
+def test_example_manifest_declares_no_noisepool():
+    """Noise-pool masks are out of scope for the pRF localizer.
 
-    Unlike the summary timeseries, noisepool is not produced for every
-    (subject, resolution) — the pRF pipeline emits it sparsely and has
-    moved it between runs, so find one rather than pinning a subject.
+    The pRF pipeline emitted some noise-pool masks, but they are not a
+    pRF product — noise-pool work is a separate project — so the
+    manifest must neither list the map nor carry a template for it.
     """
-    la = LocalizerAccess(config=aot_config)
-    for sub, res in [(3, "1p25mm"), (3, "2p0mm"), (7, "2p0mm"), (6, "2p0mm")]:
-        if la.map_path("prf", sub, "noisepool", resolution=res).exists():
-            noisepool = la.read_map("prf", sub, "noisepool", resolution=res)
-            assert noisepool.ndim == 3
-            assert noisepool.shape == la.read_map(
-                "prf", sub, "median", resolution=res
-            ).shape[:3]
-            return
-    pytest.skip("no noisepool mask in the pRF store at a canonical resolution")
+    import yaml
+    from pathlib import Path
+
+    schema = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/localizer-manifest.example.yaml"
+    )
+    manifest = yaml.safe_load(schema.read_text())
+    assert "noisepool" not in manifest["maps"]
+    assert "noisepool" not in manifest["path_templates"]
