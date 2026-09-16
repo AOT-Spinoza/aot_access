@@ -67,12 +67,30 @@ def test_real_prf_localizer(aot_config):
 
 
 @pytest.mark.cluster
-def test_prf_prep_maps(aot_config):
-    """The pRF prep maps (median/medianpsc timeseries + noisepool) read."""
+def test_prf_median_timeseries(aot_config):
+    """The pRF median/medianpsc summary timeseries read."""
     la = LocalizerAccess(config=aot_config)
     median = la.read_map("prf", 6, "median")              # 4-D timeseries
     medianpsc = la.read_map("prf", 6, "medianpsc")        # 4-D timeseries
-    noisepool = la.read_map("prf", 6, "noisepool")        # 3-D mask
     assert median.ndim == 4 and median.shape[:3] == (65, 75, 86)
     assert medianpsc.ndim == 4 and medianpsc.shape[:3] == (65, 75, 86)
-    assert noisepool.ndim == 3 and noisepool.shape == (65, 75, 86)
+
+
+@pytest.mark.cluster
+def test_prf_noisepool_mask(aot_config):
+    """The GLMsingle noise-pool mask reads where the pipeline wrote one.
+
+    Unlike the summary timeseries, noisepool is not produced for every
+    (subject, resolution) — the pRF pipeline emits it sparsely and has
+    moved it between runs, so find one rather than pinning a subject.
+    """
+    la = LocalizerAccess(config=aot_config)
+    for sub, res in [(3, "1p25mm"), (3, "2p0mm"), (7, "2p0mm"), (6, "2p0mm")]:
+        if la.map_path("prf", sub, "noisepool", resolution=res).exists():
+            noisepool = la.read_map("prf", sub, "noisepool", resolution=res)
+            assert noisepool.ndim == 3
+            assert noisepool.shape == la.read_map(
+                "prf", sub, "median", resolution=res
+            ).shape[:3]
+            return
+    pytest.skip("no noisepool mask in the pRF store at a canonical resolution")
