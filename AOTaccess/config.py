@@ -36,6 +36,7 @@ _RELATIVE_LAYOUT = {
     "video_annotations": "derivatives/stimuli/annotations",
     "roi": "derivatives/roi",
     "localizers": "derivatives/localizers",
+    "anatomy": "derivatives/anat-3T",
     "AOTdesignsettings": (
         "code/arrow_of_time_experiment/aot/data/experiment/settings/main",
         "aot/data/experiment/settings/main",
@@ -104,11 +105,17 @@ class Config:
         return self.settings.get("parameters", {}).get(key, default)
 
     def anatomy_root(self):
-        """First existing anatomy root across the known clusters.
+        """Root of the anatomy store.
 
-        Falls back to the first candidate if none exist (so the caller gets a
-        meaningful path in the eventual not-found error).
+        In ``root_dir`` mode this sits under the dataset root like every
+        other store, so a relocated copy (a download of the published
+        dataset, say) resolves without touching the cluster. Otherwise it
+        is the first existing root across the known clusters, falling back
+        to the first candidate so the caller gets a meaningful path in the
+        eventual not-found error.
         """
+        if self.root_dir is not None:
+            return self.path("anatomy")
         for candidate in _ANATOMY_ROOTS:
             if Path(candidate).exists():
                 return Path(candidate)

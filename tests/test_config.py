@@ -54,6 +54,12 @@ def test_root_dir_mode_unknown_key_raises():
         cfg.path("not-a-store")
 
 
+def test_root_dir_mode_anatomy_stays_under_the_root():
+    """A relocated copy must not reach back to the cluster for anatomy."""
+    cfg = Config(root_dir="/ds")
+    assert cfg.anatomy_root() == Path("/ds/derivatives/anat-3T")
+
+
 def test_missing_settings_file_raises(tmp_path):
     cfg = Config(settings_path=tmp_path / "nope.yml")
     with pytest.raises(ConfigError):
