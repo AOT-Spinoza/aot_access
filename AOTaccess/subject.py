@@ -280,20 +280,22 @@ class AOTSubject:
         return self.roi.rois(subject=self.sub)
 
     def get_roi_mask(self, query, atlas="wang_2015", space="T1w",
-                     res=None, cons="balanced", hemi=None):
+                     res=None, cons=None, hemi=None):
         """A boolean 3-D mask from an ROI ``query``, restricted to the brain mask.
 
         ``query`` may be:
 
         * a single ROI name (``"V1v"``);
-        * ``"all"`` — every ROI available for the subject;
+        * ``"all"`` — every ROI of ``atlas`` available for the subject;
         * a list of names / ``"all"`` — returns the **union** of all matches.
 
         ``space="T1w"`` and ``res=self.resolution`` index the subject-native
-        volume (same grid as the GLMsingle betas).
+        volume (same grid as the GLMsingle betas). ``cons=None`` takes the
+        store's default for this atlas (see
+        :meth:`~AOTaccess.roi_access.ROIAccess.mask_path`).
         """
         res = res or self.resolution
-        names = self._resolve_roi_query(query)
+        names = self._resolve_roi_query(query, atlas)
         out = None
         for name in names:
             m = self.roi.read_mask(
@@ -579,16 +581,23 @@ class AOTSubject:
     # ------------------------------------------------------------------
     # helpers
     # ------------------------------------------------------------------
-    def _resolve_roi_query(self, query):
-        """Flatten an ROI query into a list of distinct ROI names."""
+    def _resolve_roi_query(self, query, atlas="wang_2015"):
+        """Flatten an ROI query into a list of distinct ROI names.
+
+        ``"all"`` expands to the subject's ROIs **from the requested
+        atlas** only: the manifest pools ROI names across every atlas, so
+        an unfiltered expansion would ask for e.g. a Glasser label under
+        ``atlas='wang_2015'`` and fail on the first name.
+        """
         if isinstance(query, str):
             if query == "all":
-                return list(self.get_available_rois())
+                in_atlas = set(self.roi.atlas_rois(atlas))
+                return [r for r in self.get_available_rois() if r in in_atlas]
             return [query]
         if isinstance(query, (list, tuple, set)):
             seen, out = set(), []
             for q in query:
-                for name in self._resolve_roi_query(q):
+                for name in self._resolve_roi_query(q, atlas):
                     if name not in seen:
                         seen.add(name)
                         out.append(name)

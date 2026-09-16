@@ -39,6 +39,15 @@ def test_read_roi_mask_on_epi_grid(aot_config):
 
 
 @pytest.mark.cluster
+def test_facade_reads_an_atlas_with_a_non_default_cons(aot_config):
+    """fs_aseg ships only cons='labels'; the facade must delegate the default."""
+    a = AOTAccess(config=aot_config)
+    mask = a.read_roi_mask(6, "Left_Hippocampus", atlas="fs_aseg")
+    assert mask.shape == (65, 75, 86)
+    assert mask.sum() > 0
+
+
+@pytest.mark.cluster
 def test_read_session_from_video(aot_config):
     """The previously-broken facade method now returns valid sessions."""
     a = AOTAccess(config=aot_config)

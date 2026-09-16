@@ -45,6 +45,14 @@ _VOLUME_SPACE_ALIASES = {
 # Spaces accepted by surface methods.
 _SURFACE_SPACES = {"fsnative", "fsaverage"}
 
+# Preferred defaults, used when a space/atlas offers them. Volumetric methods
+# take `res=None` / `cons=None` and resolve against the manifest and the store
+# (see _resolve_res / _resolve_cons) — the spaces are not built at the same
+# resolutions, nor the atlases at the same conservativeness levels, so a single
+# hardcoded default cannot be right everywhere.
+_PREFERRED_RES = "2p0mm"
+_PREFERRED_CONS = "balanced"
+
 
 def _resolve_volume_space(space):
     """Validate a volume-method `space` arg and return its manifest prefix.
@@ -77,6 +85,7 @@ class ROIAccess:
         self.roi_dir = self.config.path("roi")
         self.manifest_path = self.roi_dir / "MANIFEST.yaml"
         self._manifest = None
+        self._cons_cache = {}
 
     # ------------------------------------------------------------------
     # manifest
@@ -92,6 +101,16 @@ class ROIAccess:
             with open(self.manifest_path) as f:
                 self._manifest = yaml.safe_load(f)
         return self._manifest
+
+    def refresh(self):
+        """Drop the cached manifest and directory listings.
+
+        The ROI store is rebuilt in place, so a long-running process that
+        first read it mid-build would otherwise keep serving what it saw
+        then. Call this after a build lands to pick up the new state.
+        """
+        self._manifest = None
+        self._cons_cache.clear()
 
     # ------------------------------------------------------------------
     # discovery
@@ -109,11 +128,30 @@ class ROIAccess:
         return list(self.manifest["spaces"])
 
     def conservativeness_levels(self):
-        """List conservativeness levels, e.g. 'strict', 'balanced', 'liberal'."""
+        """List conservativeness levels, e.g. 'strict', 'balanced', 'liberal'.
+
+        Not every level is built for every atlas — ``fs_aseg`` ships only
+        ``'labels'``, the others ship the remaining eight. Use
+        :meth:`available_cons` for the levels actually present for one
+        (subject, atlas, space, resolution), and :meth:`cons_info` for a
+        level's description, threshold and sampling.
+        """
         return list(self.manifest["conservativeness_levels"])
 
+    def cons_info(self, cons: str):
+        """Return manifest metadata for a conservativeness level.
+
+        Mirrors :meth:`atlas_info` / :meth:`roi_info`: a dict with the
+        level's ``description``, ``threshold`` and ``sampling``.
+        """
+        return self.manifest["conservativeness_levels"][cons]
+
     def resolutions(self, space: str = "T1w"):
-        """List available resolutions for a volumetric space ('T1w' / 'MNI')."""
+        """List available resolutions for a volumetric space ('T1w' / 'MNI').
+
+        The spaces differ: subject-native volumes are built at both
+        ``2p0mm`` and ``1p25mm``, MNI volumes at ``1p25mm`` only.
+        """
         key = _resolve_volume_space(space)
         return list(self.manifest["resolutions"][key])
 
@@ -135,6 +173,15 @@ class ROIAccess:
         """Return manifest metadata for an ROI (full_name, source)."""
         return self.manifest["rois"][roi]
 
+    def atlas_rois(self, atlas: str):
+        """ROI names belonging to one atlas.
+
+        :meth:`rois` pools every ROI in the library (or every ROI built for
+        a subject) across all atlases, so a name from it is not necessarily
+        readable with a given ``atlas=``. This is the per-atlas list.
+        """
+        return list(self.atlas_info(atlas).get("rois", []))
+
     def missing_rois(self, subject):
         """ROIs the manifest reports as not produced for a subject."""
         return self._sub_entry(subject).get("missing_rois", {})
@@ -142,6 +189,67 @@ class ROIAccess:
     def template_keys(self):
         """List the path-template names defined in the manifest."""
         return list(self.manifest["path_templates"])
+
+    # ------------------------------------------------------------------
+    # provenance and build status
+    # ------------------------------------------------------------------
+    def provenance(self):
+        """Who built this ROI library, when, and against which schema.
+
+        A dict with ``manifest_schema_version``, ``toolchain_version``,
+        ``generated_at``, ``generated_by``, ``dataset`` and ``schema_url``
+        — the "what am I reading" story in one call.
+        """
+        m = self.manifest
+        return {
+            "manifest_schema_version": m.get("manifest_schema_version"),
+            "toolchain_version": m.get("toolchain_version"),
+            "generated_at": m.get("generated_at"),
+            "generated_by": m.get("generated_by"),
+            "dataset": m.get("dataset"),
+            "schema_url": m.get("$schema"),
+        }
+
+    def schema_version(self):
+        """Manifest schema version as an ``(major, minor, patch)`` tuple.
+
+        Callers can branch on capability without string-munging; ``None``
+        if the manifest predates the version key.
+        """
+        raw = self.manifest.get("manifest_schema_version")
+        if raw is None:
+            return None
+        parts = str(raw).split(".")
+        return tuple(int(p) if p.isdigit() else 0 for p in parts[:3])
+
+    def build_status(self):
+        """The toolchain's own report on the last build.
+
+        A dict with ``completed``, ``hashes_computed``, ``failed_outputs``
+        and ``warnings``. Empty dict for manifests that predate the key.
+        """
+        return self.manifest.get("build_status", {})
+
+    def build_warnings(self):
+        """Warnings recorded by the last build, as ``{code, message}`` dicts."""
+        return list(self.build_status().get("warnings", []))
+
+    def failed_outputs(self):
+        """Products the last build failed to write.
+
+        The per-file counterpart to :meth:`missing_rois`, which reports
+        per-subject ROI gaps the toolchain knew about in advance.
+        """
+        return list(self.build_status().get("failed_outputs", []))
+
+    def is_complete(self):
+        """Whether the toolchain reported the last build as completed.
+
+        ``False`` is a real signal that reads may hit missing files: the
+        store is rebuilt in place, so a manifest can also be *older* than
+        the tree it describes while a build is in flight.
+        """
+        return bool(self.build_status().get("completed", False))
 
     # ------------------------------------------------------------------
     # subject token helpers
@@ -162,7 +270,7 @@ class ROIAccess:
         """Manifest entry for a subject; DataNotFoundError if absent.
 
         Subjects can exist in other stores (e.g. GLMsingle) before the ROI
-        library has been regenerated for them — sub-006 as of Aug 2026.
+        library has been regenerated for them.
         """
         key = self._sub_key(sub)
         entry = self.manifest["subjects"].get(key)
@@ -173,6 +281,168 @@ class ROIAccess:
                 f"the ROI store may not have been regenerated for it yet."
             )
         return entry
+
+    # ------------------------------------------------------------------
+    # availability — what is actually on disk for one (sub, atlas, ...)
+    # ------------------------------------------------------------------
+    def _volume_dir(self, sub, atlas, space_key, res=None):
+        """Directory holding one atlas's volumetric products for a subject."""
+        d = (
+            self.roi_dir
+            / self._sub_key(sub)
+            / f"{space_key}_volume"
+            / f"atlas-{atlas}"
+        )
+        return d if res is None else d / f"res-{res}"
+
+    def available_atlases(self, sub, space: str = "T1w"):
+        """Atlases with volumetric products on disk for one subject."""
+        return self._available_atlases(sub, _resolve_volume_space(space))
+
+    def _available_atlases(self, sub, space_key):
+        """:meth:`available_atlases` keyed by a resolved space prefix."""
+        base = self.roi_dir / self._sub_key(sub) / f"{space_key}_volume"
+        if not base.exists():
+            return []
+        return sorted(
+            p.name[len("atlas-"):]
+            for p in base.iterdir()
+            if p.is_dir() and p.name.startswith("atlas-")
+        )
+
+    def available_resolutions(self, sub, atlas="wang_2015", space="T1w"):
+        """Resolutions on disk for one (subject, atlas, space)."""
+        key = _resolve_volume_space(space)
+        base = self._volume_dir(sub, atlas, key)
+        if not base.exists():
+            return []
+        return sorted(
+            p.name[len("res-"):]
+            for p in base.iterdir()
+            if p.is_dir() and p.name.startswith("res-")
+        )
+
+    def available_cons(self, sub, atlas="wang_2015", space="T1w", res=None):
+        """Conservativeness levels on disk for one (subject, atlas, space, res).
+
+        Not every level is built for every atlas — ``fs_aseg`` ships only
+        ``'labels'`` (a labels-preserving resample), the surface-sampled
+        atlases ship the other eight. Cached per lookup.
+        """
+        return self._available_cons(sub, atlas, _resolve_volume_space(space), res)
+
+    def _available_cons(self, sub, atlas, space_key, res):
+        """:meth:`available_cons` keyed by an already-resolved space prefix.
+
+        Empty listings are not cached: the store is rebuilt in place, so an
+        atlas directory can be momentarily absent and must not be
+        remembered as empty for the life of the object.
+        """
+        res = self._resolve_res(space_key, res)
+        cache_key = (self._sub_key(sub), atlas, space_key, res)
+        if cache_key not in self._cons_cache:
+            base = self._volume_dir(sub, atlas, space_key, res)
+            levels = (
+                sorted(
+                    p.name[len("cons-"):]
+                    for p in base.iterdir()
+                    if p.is_dir() and p.name.startswith("cons-")
+                )
+                if base.exists()
+                else []
+            )
+            if not levels:
+                return []
+            self._cons_cache[cache_key] = levels
+        return list(self._cons_cache[cache_key])
+
+    def _atlas_cons(self, sub, atlas, space_key):
+        """Conservativeness levels for an atlas, unioned over its resolutions.
+
+        A single resolution's listing can be *partial* while the store is
+        rebuilt in place. Corroborating across the atlas's resolutions
+        keeps a half-written directory from looking like an atlas that
+        ships exactly one level, which is what
+        :meth:`_resolve_cons` keys its fallback on.
+        """
+        base = self._volume_dir(sub, atlas, space_key)
+        if not base.exists():
+            return []
+        levels = set()
+        for res_dir in base.iterdir():
+            if res_dir.is_dir() and res_dir.name.startswith("res-"):
+                levels.update(
+                    self._available_cons(
+                        sub, atlas, space_key, res_dir.name[len("res-"):]
+                    )
+                )
+        return sorted(levels)
+
+    # ------------------------------------------------------------------
+    # default resolution / conservativeness
+    # ------------------------------------------------------------------
+    def _resolve_res(self, space_key, res):
+        """Fill in a ``res=None`` default from the manifest, per space.
+
+        The spaces are built at different resolutions (subject-native at
+        2p0mm and 1p25mm, MNI at 1p25mm only), so a single hardcoded
+        default cannot be right for both.
+        """
+        if res is not None:
+            return res
+        available = self.manifest.get("resolutions", {}).get(space_key) or []
+        if _PREFERRED_RES in available:
+            return _PREFERRED_RES
+        return available[0] if available else _PREFERRED_RES
+
+    def _resolve_cons(self, sub, atlas, space_key, res, cons):
+        """Fill in a ``cons=None`` default from what is on disk.
+
+        Prefers ``'balanced'`` where it exists; falls back to the sole
+        level when an atlas ships exactly one (``fs_aseg`` → ``'labels'``).
+        If nothing can be listed — an unbuilt subject, or a rebuild in
+        flight — defers to ``'balanced'`` so the caller gets the familiar
+        path-not-found error rather than a confusing one from here.
+
+        Never guesses between several non-preferred levels: silently
+        picking one would hand back a real, readable mask sampled at a
+        conservativeness the caller did not ask for.
+        """
+        if cons is not None:
+            return cons
+        levels = self._atlas_cons(sub, atlas, space_key)
+        if _PREFERRED_CONS in levels or not levels:
+            return _PREFERRED_CONS
+        if len(levels) == 1:
+            if self._cons_is_exclusive(sub, space_key, res, levels[0]):
+                return levels[0]
+            # An ordinary level standing alone means the directory is still
+            # being written — fall back so the caller gets a path-not-found
+            # rather than a mask at a conservativeness they did not ask for.
+            return _PREFERRED_CONS
+        raise ValueError(
+            f"No '{_PREFERRED_CONS}' conservativeness for atlas {atlas!r} "
+            f"(sub={sub}, space={space_key}); pass cons= explicitly. "
+            f"Available: {levels}."
+        )
+
+    def _cons_is_exclusive(self, sub, space_key, res, level):
+        """Whether ``level`` is special-purpose rather than interchangeable.
+
+        The manifest lists conservativeness levels globally, not per atlas,
+        so the store itself has to say which are exclusive. A level that
+        appears *alongside* the preferred one for some other atlas of this
+        subject is an ordinary alternative (``strict``, ``liberal``,
+        ``thick``, the ``pyc_*`` samplers) — seeing it alone means the
+        directory is mid-write. A level that never co-occurs with it, as
+        ``fs_aseg``'s ``labels`` never does, really is its atlas's only
+        level.
+        """
+        for other in self._available_atlases(sub, space_key):
+            levels = self._available_cons(sub, other, space_key, res)
+            if level in levels and _PREFERRED_CONS in levels:
+                return False
+        return True
 
     # ------------------------------------------------------------------
     # generic path resolution
@@ -209,14 +479,19 @@ class ROIAccess:
     # volumetric masks (single ROI)
     # ------------------------------------------------------------------
     def mask_path(self, sub, roi, atlas="wang_2015", space="T1w",
-                  res="2p0mm", cons="balanced", hemi=None):
+                  res=None, cons=None, hemi=None):
         """Path to a single-ROI binary mask.
 
         ``hemi`` None resolves the bilateral mask (union of L and R);
         'L'/'R' resolves the per-hemisphere mask. ``space`` is 'T1w'
-        (the EPI grid) or 'MNI'.
+        (the EPI grid) or 'MNI'. ``res`` and ``cons`` default to what the
+        store actually offers for this space and atlas — 2p0mm/balanced
+        where available, otherwise the sole built alternative (MNI is
+        1p25mm-only; ``fs_aseg`` is ``cons='labels'``-only).
         """
         sp = _resolve_volume_space(space)
+        res = self._resolve_res(sp, res)
+        cons = self._resolve_cons(sub, atlas, sp, res, cons)
         kind = "per_hemi" if hemi is not None else "bilateral"
         params = dict(sub=sub, atlas=atlas, roi=roi, res=res, cons=cons)
         if hemi is not None:
@@ -224,7 +499,7 @@ class ROIAccess:
         return self.resolve(f"{sp}_volume_mask_{kind}", **params)
 
     def read_mask(self, sub, roi, atlas="wang_2015", space="T1w",
-                  res="2p0mm", cons="balanced", hemi=None):
+                  res=None, cons=None, hemi=None):
         """Load a single-ROI mask as a boolean ndarray.
 
         With ``space='T1w'`` at a matching resolution the result indexes
@@ -243,9 +518,14 @@ class ROIAccess:
     # volumetric parcellations (all ROIs of an atlas)
     # ------------------------------------------------------------------
     def dseg_path(self, sub, atlas="wang_2015", space="T1w",
-                  res="2p0mm", cons="balanced", hemi=None):
-        """Path to an atlas discrete segmentation (integer-labelled volume)."""
+                  res=None, cons=None, hemi=None):
+        """Path to an atlas discrete segmentation (integer-labelled volume).
+
+        ``res`` and ``cons`` default as in :meth:`mask_path`.
+        """
         sp = _resolve_volume_space(space)
+        res = self._resolve_res(sp, res)
+        cons = self._resolve_cons(sub, atlas, sp, res, cons)
         kind = "per_hemi" if hemi is not None else "bilateral"
         params = dict(sub=sub, atlas=atlas, res=res, cons=cons)
         if hemi is not None:
@@ -253,7 +533,7 @@ class ROIAccess:
         return self.resolve(f"{sp}_volume_dseg_{kind}", **params)
 
     def read_dseg(self, sub, atlas="wang_2015", space="T1w",
-                  res="2p0mm", cons="balanced", hemi=None):
+                  res=None, cons=None, hemi=None):
         """Load an atlas discrete segmentation as an integer ndarray."""
         path = self.dseg_path(sub, atlas, space, res, cons, hemi)
         if not path.exists():
@@ -267,7 +547,11 @@ class ROIAccess:
                            space="fsnative"):
         """Path to a per-ROI surface label (.label.gii).
 
-        ``space`` is 'fsnative' (atlas-specific) or 'fsaverage' (manual ROIs).
+        ``space`` is 'fsnative' (atlas-specific) or 'fsaverage'. The
+        fsaverage template is hardcoded to the hand-drawn ``manual``
+        atlas, which carries no ROIs in the current build — so fsaverage
+        labels do not resolve for any subject yet, and ``atlas`` is
+        ignored for that space.
         """
         if space == "fsaverage":
             return self.resolve("fsaverage_surface_label",
