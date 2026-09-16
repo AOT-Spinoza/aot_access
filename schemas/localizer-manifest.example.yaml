@@ -65,8 +65,8 @@ maps:
   noiseceiling: {full_name: split-half noise ceiling, models: [], template: noiseceiling}
   median:       {full_name: median time series,       models: [], template: summary}
   medianpsc:    {full_name: median PSC time series,   models: [], template: summary}
-  predictions: {full_name: cross-validated prediction, models: [gauss, dog, norm], template: prediction}
-  residuals:   {full_name: cross-validated residual,   models: [gauss, dog, norm], template: residual}
+  predictions: {full_name: model prediction, models: [gauss, dog, norm], template: prediction}
+  residuals:   {full_name: model residual,   models: [gauss, dog, norm], template: residual}
 
 path_templates:
   param_map:

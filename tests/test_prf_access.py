@@ -168,6 +168,12 @@ def test_read_table_prediction_residual_and_noiseceiling(synthetic_prf_access):
         3, model="dog", resolution="1p25mm", runpart="firsthalf"
     )
     assert list(table.columns) == ["x", "r2"]
+    assert "_run-all_" in access.prediction_path(
+        3, model="gauss", resolution="1p25mm"
+    ).name
+    assert "_run-all_" in access.residual_path(
+        3, model="gauss", resolution="1p25mm"
+    ).name
     assert access.read_prediction(3, model="gauss", resolution="1p25mm").shape == (
         2,
         2,

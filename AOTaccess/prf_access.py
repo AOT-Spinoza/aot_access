@@ -212,7 +212,7 @@ class PrfAccess:
         return pd.read_csv(path, sep="\t")
 
     def prediction_path(self, sub, model="gauss", resolution="2p0mm",
-                        runpart="cv", rec="nordicstc", space="T1w"):
+                        runpart="all", rec="nordicstc", space="T1w"):
         """Path to a pRF model-prediction time series."""
         return self.localizer.map_path(
             _LOCALIZER,
@@ -222,7 +222,7 @@ class PrfAccess:
         )
 
     def read_prediction(self, sub, model="gauss", resolution="2p0mm",
-                        runpart="cv", rec="nordicstc", space="T1w"):
+                        runpart="all", rec="nordicstc", space="T1w"):
         """Read a pRF model-prediction time series as an ndarray."""
         return self.localizer.read_map(
             _LOCALIZER,
@@ -232,7 +232,7 @@ class PrfAccess:
         )
 
     def residual_path(self, sub, model="gauss", resolution="2p0mm",
-                      runpart="cv", rec="nordicstc", space="T1w"):
+                      runpart="all", rec="nordicstc", space="T1w"):
         """Path to a pRF residual time series."""
         return self.localizer.map_path(
             _LOCALIZER,
@@ -242,7 +242,7 @@ class PrfAccess:
         )
 
     def read_residual(self, sub, model="gauss", resolution="2p0mm",
-                      runpart="cv", rec="nordicstc", space="T1w"):
+                      runpart="all", rec="nordicstc", space="T1w"):
         """Read a pRF residual time series as an ndarray."""
         return self.localizer.read_map(
             _LOCALIZER,
