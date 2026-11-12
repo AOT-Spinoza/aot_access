@@ -1,5 +1,7 @@
 import yaml
 
+from pathlib import Path
+
 from AOTaccess.config import Config
 
 
@@ -13,6 +15,12 @@ class ExpDesignAccess:
         """
         self.config = config if config is not None else Config(root_dir=root_dir)
         self.root_expdesign_dir = self.config.path("AOTdesignsettings")
+        if root_dir is not None and not (Path(self.root_expdesign_dir).is_dir()):
+            # Older call sites pass the experiment-settings directory itself as
+            # ``root_dir``, which the layout lookup would then nest again.
+            candidate = Path(root_dir)
+            if candidate.is_dir() and any(candidate.glob("experiment_settings_*.yml")):
+                self.root_expdesign_dir = candidate
         self.run_number = self.config.param("run_number", 10)
 
     def read_expdesign_file(self, sub: int, ses: int, run: int):

@@ -221,6 +221,9 @@ def test_motion_energy_path_helpers_pure_unit():
     npyp = stim._motion_energy_npy_path(7, "rv", 32)
     assert h5p.name == "0007_rv.h5"
     assert npyp.name == "0007_rv.npy"
-    assert h5p.parent.name == "32hz"
-    assert npyp.parent.name == "32hz"
+    # The source bank is being renamed 32hz/16hz -> source_32hz/source_16hz;
+    # the path helper resolves through the bank registry, so accept either name
+    # while the rollout is in progress.
+    assert h5p.parent.name in {"source_32hz", "32hz"}
+    assert npyp.parent.name in {"source_32hz", "32hz"}
     assert h5p.parent.parent.name == "motion_energy"

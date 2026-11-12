@@ -96,34 +96,62 @@ class StimuliInfoAccess:
         """Metadata about the qwen_embedding annotation pipeline."""
         return self._read_manifest_yaml("qwen_embedding.yml")
 
-    def read_moten_filter_info(self, highest_freq: int = 32):
-        """Pymoten filter-bank info for the given max spatial frequency.
+    # Manifest file per bank. The source banks were renamed with the
+    # ``source_`` prefix; the pre-rename names are still accepted while the
+    # rollout completes.
+    _MOTEN_MANIFEST_NAMES = {
+        "source_32hz": "moten_filter_info_source_32.yml",
+        "source_16hz": "moten_filter_info_source_16.yml",
+        "display": "moten_filter_info_display.yml",
+    }
+    _MOTEN_MANIFEST_PRE_RENAME = {
+        "source_32hz": "moten_filter_info_32.yml",
+        "source_16hz": "moten_filter_info_16.yml",
+    }
+
+    def read_moten_filter_info(self, highest_freq=None, bank=None):
+        """Pymoten filter-bank info for one bank.
 
         Returns a dict with ``meta`` (filter-bank parameters; ``n_filters``
         is the channel count of the per-frame motion-energy array),
-        ``dva_alignment`` (image-to-degrees mapping), and ``filters`` —
-        one dict per filter, with its centre, spatial/temporal frequency,
-        direction, envelope and pRF-aligned coordinates (x_dva, y_dva,
-        eccentricity, polar angle). Cached after the first load (the YAML
-        is large — ~38 k lines for 16-Hz, ~178 k for 32-Hz).
+        ``dva_alignment`` (image-to-degrees mapping) and ``filters`` — one
+        entry per filter. For the legacy ``source_*`` banks the per-filter
+        coordinates are the historical source-frame alignment; for the
+        ``display`` bank they are already physical (``x_deg``, ``y_deg``,
+        ``sf_cpd``, ``direction_phys_deg``, ...). Cached per bank.
 
         Parameters:
-            highest_freq (int): 16 or 32 — matches
-                :meth:`read_motion_energy_features`.
+            highest_freq (int): 16 or 32 — legacy bank selector, ignored when
+                ``bank`` is given.
+            bank (str | None): ``"display"``, ``"source_32hz"``,
+                ``"source_16hz"``, or a deprecated alias. ``None`` keeps the
+                historical behaviour and warns.
         """
-        if highest_freq not in (16, 32):
-            raise ValueError(
-                f"highest_freq must be 16 or 32; got {highest_freq!r}"
-            )
-        if highest_freq not in self._moten_filter_info:
-            path = self.annotations_manifest_dir() / f"moten_filter_info_{highest_freq}.yml"
+        canonical = self.resolve_motion_energy_bank(bank=bank,
+                                                    highest_freq=highest_freq,
+                                                    direction="fw")
+        key = canonical
+        if key not in self._moten_filter_info:
+            manifest_dir = self.annotations_manifest_dir()
+            path = manifest_dir / self._MOTEN_MANIFEST_NAMES[canonical]
             if not path.exists():
-                raise DataNotFoundError(
-                    f"Pymoten filter info not found: {path}"
-                )
+                pre = self._MOTEN_MANIFEST_PRE_RENAME.get(canonical)
+                if pre is not None and (manifest_dir / pre).exists():
+                    warnings.warn(
+                        f"{canonical} manifest still under its pre-rename name "
+                        f"{pre!r}; this transitional fallback will be removed.",
+                        DeprecationWarning,
+                        stacklevel=3,
+                    )
+                    path = manifest_dir / pre
+                else:
+                    raise DataNotFoundError(
+                        f"Pymoten filter info not found for bank "
+                        f"{canonical!r}: {path}"
+                    )
             with open(path) as f:
-                self._moten_filter_info[highest_freq] = yaml.safe_load(f)
-        return self._moten_filter_info[highest_freq]
+                self._moten_filter_info[key] = yaml.safe_load(f)
+        return self._moten_filter_info[key]
 
     def available_annotations(self, video_id: int, direction: str = "fw"):
         """Annotation kinds available for one (video, direction)."""
@@ -308,52 +336,178 @@ class StimuliInfoAccess:
     # exists) and raises :class:`DataNotFoundError` until the file (or its
     # ``/motion_energy_summary`` dataset) appears.
 
-    def _motion_energy_h5_path(
-        self, video_id: int, direction: str, highest_freq: int
+    # ---- bank registry ---------------------------------------------------
+    #
+    # A "bank" is one filter bank + geometry version. The directory under
+    # ``motion_energy/`` names it:
+    #
+    #   source_32hz / source_16hz : legacy, features computed on the SOURCE
+    #       video frame (1536x1080, aspect 16:9). Physically anisotropic.
+    #   display : physically corrected, computed on the displayed geometry
+    #       (1075.2x756 display px, aspect 64/45). Currently fw only.
+    #
+    # The historical directory names ``32hz`` / ``16hz`` are still accepted
+    # while the rename rolls out, and the historical ids remain valid via
+    # aliases (with a DeprecationWarning).
+    _ME_BANKS = ("display", "source_32hz", "source_16hz")
+    _ME_BANK_ALIASES = {"32hz": "source_32hz", "16hz": "source_16hz"}
+    _ME_BANK_PRE_RENAME_DIRS = {"source_32hz": "32hz", "source_16hz": "16hz"}
+
+    #: Bank returned when the caller does not ask for one.
+    #: ``display`` is the physically-correct bank and the project default.
+    _ME_DEFAULT_BANK = "display"
+    #: rv has not been migrated to ``display``; forward reads fall back to the
+    #: legacy 16-Hz source bank (the only complete rv set) with a warning.
+    _ME_RV_FALLBACK_BANK = "source_16hz"
+
+    def resolve_motion_energy_bank(self, bank=None, highest_freq=None,
+                                   direction="fw") -> str:
+        """Return the canonical bank id.
+
+        Default behaviour (``bank=None``):
+
+        * ``direction="fw"`` -> the **display** bank, i.e. the physically
+          corrected features. This is the project default since 2026-11-11.
+        * ``direction="rv"`` -> falls back to ``source_16hz`` with a warning,
+          because rv has not been migrated yet.
+        * passing ``highest_freq=16/32`` keeps the historical legacy bank for
+          that ladder (with a warning) - the explicit escape hatch for
+          reproducing pre-migration numbers.
+        """
+        if bank is None:
+            if highest_freq is not None:
+                if highest_freq not in (16, 32):
+                    raise ValueError(
+                        f"highest_freq must be 16 or 32; got {highest_freq!r}"
+                    )
+                canonical = f"source_{highest_freq}hz"
+                warnings.warn(
+                    f"highest_freq={highest_freq} selects the legacy source-frame "
+                    f"bank ({canonical!r}). This is only needed to reproduce "
+                    "pre-migration results; pass bank='display' for the "
+                    "physically corrected features.",
+                    DeprecationWarning,
+                    stacklevel=3,
+                )
+                return canonical
+            if direction != "fw":
+                warnings.warn(
+                    f"the display motion-energy bank has no {direction!r} features "
+                    f"yet; falling back to the legacy {self._ME_RV_FALLBACK_BANK!r}.",
+                    DeprecationWarning,
+                    stacklevel=3,
+                )
+                return self._ME_RV_FALLBACK_BANK
+            return self._ME_DEFAULT_BANK
+        if bank in self._ME_BANK_ALIASES:
+            canonical = self._ME_BANK_ALIASES[bank]
+            warnings.warn(
+                f"motion-energy bank {bank!r} is deprecated; use {canonical!r}.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return canonical
+        if bank not in self._ME_BANKS:
+            raise ValueError(
+                f"unknown motion-energy bank {bank!r}; expected one of "
+                f"{list(self._ME_BANKS)} (aliases: {sorted(self._ME_BANK_ALIASES)})"
+            )
+        return bank
+
+    def _motion_energy_bank_dir(
+        self, video_id: int, direction: str, canonical: str
     ) -> Path:
-        """Path to the new per-(video, direction, rate) HDF5."""
-        return (
-            self.get_video_annotation_dir(video_id, direction)
-            / "motion_energy" / f"{highest_freq}hz"
-            / f"{video_id:04d}_{direction}.h5"
-        )
+        """Directory holding one bank's features, honouring the rename rollout."""
+        base = self.get_video_annotation_dir(video_id, direction) / "motion_energy"
+        path = base / canonical
+        if path.is_dir():
+            return path
+        pre = self._ME_BANK_PRE_RENAME_DIRS.get(canonical)
+        if pre is not None and (base / pre).is_dir():
+            warnings.warn(
+                f"{canonical} is still stored under the pre-rename directory "
+                f"name {pre!r}; this transitional fallback will be removed.",
+                DeprecationWarning,
+                stacklevel=4,
+            )
+            return base / pre
+        return path
+
+    def _motion_energy_h5_path(
+        self, video_id: int, direction: str, highest_freq=None,
+        bank=None
+    ) -> Path:
+        """Path to the per-(video, direction, bank) HDF5."""
+        canonical = self.resolve_motion_energy_bank(bank=bank,
+                                                    highest_freq=highest_freq,
+                                                    direction=direction)
+        return (self._motion_energy_bank_dir(video_id, direction, canonical)
+                / f"{video_id:04d}_{direction}.h5")
 
     def _motion_energy_npy_path(
-        self, video_id: int, direction: str, highest_freq: int
+        self, video_id: int, direction: str, highest_freq=None,
+        bank=None
     ) -> Path:
-        """Path to the legacy per-(video, direction, rate) NPY."""
-        return (
-            self.get_video_annotation_dir(video_id, direction)
-            / "motion_energy" / f"{highest_freq}hz"
-            / f"{video_id:04d}_{direction}.npy"
-        )
+        """Path to the legacy per-frame NPY (source banks only)."""
+        canonical = self.resolve_motion_energy_bank(bank=bank,
+                                                   highest_freq=highest_freq,
+                                                   direction=direction)
+        return (self._motion_energy_bank_dir(video_id, direction, canonical)
+                / f"{video_id:04d}_{direction}.npy")
 
     def read_motion_energy_features(
-        self, video_id: int, direction: str = "fw", highest_freq: int = 32
+        self,
+        video_id: int,
+        direction: str = "fw",
+        highest_freq=None,
+        bank=None,
     ) -> np.ndarray:
-        """Per-frame motion-energy features for one (video, direction).
+        """Per-frame motion-energy features for one (video, direction, bank).
 
         Shape ``(n_frames, n_filters)``, dtype ``float32`` — the
         log-compressed pymoten output, one channel per filter in the bank
         described by :meth:`read_moten_filter_info`. ``n_frames`` is 60 or
         61 (depends on the source clip duration); ``n_filters`` matches
-        ``read_moten_filter_info(highest_freq)["meta"]["n_filters"]``.
+        ``read_moten_filter_info(...)["meta"]["n_filters"]``.
 
-        Prefers the new HDF5 file
-        (``.../motion_energy/{freq}hz/{video:04d}_{direction}.h5``,
-        dataset ``/motion_energy``). Falls back to the legacy
-        ``.npy`` while the conversion is in progress and emits a one-time
-        :class:`DeprecationWarning` for the call site.
+        Banks:
+            ``"display"``
+                physically corrected features on the displayed geometry
+                (9085 channels). Currently ``fw`` only — ``rv`` raises.
+                **Preferred for new analyses.**
+            ``"source_32hz"`` / ``"source_16hz"``
+                legacy features on the source video frame (11845 / 2530
+                channels, physically anisotropic). Kept for compatibility.
+            ``None``
+                historical behaviour: the legacy bank picked by
+                ``highest_freq``; emits a :class:`DeprecationWarning`.
+
+        Reads the HDF5 ``/motion_energy`` dataset when present and falls back
+        to the legacy ``.npy`` for the source banks only.
 
         Parameters:
             video_id (int): Video identification number.
             direction (str): ``"fw"`` or ``"rv"``.
-            highest_freq (int): Filter-bank max spatial frequency, 16 or 32.
+            highest_freq (int): Legacy bank selector, 16 or 32 (ignored when
+                ``bank`` is given).
+            bank (str | None): ``"display"``, ``"source_32hz"``,
+                ``"source_16hz"``, or a deprecated alias ``"32hz"``/``"16hz"``.
 
         Raises:
-            DataNotFoundError: Neither the HDF5 nor the legacy NPY exists.
+            DataNotFoundError: The requested bank has no features for this
+                video (including ``display`` + ``rv``, which is not migrated).
         """
-        h5_path = self._motion_energy_h5_path(video_id, direction, highest_freq)
+        canonical = self.resolve_motion_energy_bank(bank=bank,
+                                                    highest_freq=highest_freq,
+                                                    direction=direction)
+        if canonical == "display" and direction != "fw":
+            raise DataNotFoundError(
+                f"motion-energy bank 'display' has no {direction!r} features yet "
+                f"(the display bank is fw-only in this version). Use "
+                f"bank='source_16hz' for legacy {direction!r} data."
+            )
+        h5_path = self._motion_energy_h5_path(video_id, direction, highest_freq,
+                                              bank=canonical)
         if h5_path.exists():
             with h5py.File(h5_path, "r") as f:
                 if "motion_energy" not in f:
@@ -362,30 +516,32 @@ class StimuliInfoAccess:
                         f"{h5_path}"
                     )
                 return f["motion_energy"][...]
-        npy_path = self._motion_energy_npy_path(video_id, direction, highest_freq)
-        if npy_path.exists():
+        npy_path = self._motion_energy_npy_path(video_id, direction, highest_freq,
+                                                bank=canonical)
+        if npy_path.exists() and canonical != "display":
             warnings.warn(
                 f"Reading legacy .npy motion-energy at {npy_path}; will be "
-                f"removed once the {highest_freq}-Hz HDF5 conversion completes.",
+                f"removed once the HDF5 conversion completes.",
                 DeprecationWarning,
                 stacklevel=2,
             )
             return np.load(npy_path)
         hint = ""
-        if highest_freq != 16 and self._motion_energy_h5_path(
-            video_id, direction, 16
-        ).exists():
-            hint = " (16-Hz data exists for this video — try highest_freq=16)"
+        if canonical != "display":
+            if self._motion_energy_bank_dir(
+                video_id, direction, "display").is_dir():
+                hint = " (display-bank data exists for this video — try bank='display')"
         raise DataNotFoundError(
             f"Motion-energy file not found for video={video_id}, "
-            f"direction={direction!r}, highest_freq={highest_freq}: "
+            f"direction={direction!r}, bank={canonical!r}: "
             f"tried {h5_path} and {npy_path}{hint}"
         )
 
     def read_motion_energy_summary(
-        self, video_id: int, direction: str = "fw", highest_freq: int = 32
+        self, video_id: int, direction: str = "fw", highest_freq=None,
+        bank=None,
     ) -> np.ndarray:
-        """Per-video motion-energy summary for one (video, direction).
+        """Per-video motion-energy summary for one (video, direction, bank).
 
         Shape ``(n_filters,)``, dtype ``float32`` — the temporal mean of
         the (already log-compressed) per-frame array. This is the
@@ -393,24 +549,34 @@ class StimuliInfoAccess:
         (already done upstream by pymoten), then average over time.
 
         Reads ``/motion_energy_summary`` from the per-(video, direction,
-        rate) HDF5. No legacy ``.npy`` form exists — this method is the
+        bank) HDF5. No legacy ``.npy`` form exists — this method is the
         HDF5-only entry point.
 
         Parameters:
             video_id (int): Video identification number.
             direction (str): ``"fw"`` or ``"rv"``.
-            highest_freq (int): Filter-bank max spatial frequency, 16 or 32.
+            highest_freq (int): Legacy bank selector, 16 or 32 (ignored when
+                ``bank`` is given).
+            bank (str | None): see :meth:`read_motion_energy_features`.
 
         Raises:
             DataNotFoundError: Either the HDF5 file is missing or the
                 ``/motion_energy_summary`` dataset has not been written yet
                 (the conversion may still be in progress).
         """
-        h5_path = self._motion_energy_h5_path(video_id, direction, highest_freq)
+        canonical = self.resolve_motion_energy_bank(bank=bank,
+                                                    highest_freq=highest_freq,
+                                                    direction=direction)
+        if canonical == "display" and direction != "fw":
+            raise DataNotFoundError(
+                f"motion-energy bank 'display' has no {direction!r} features yet."
+            )
+        h5_path = self._motion_energy_h5_path(video_id, direction, highest_freq,
+                                              bank=canonical)
         if not h5_path.exists():
             raise DataNotFoundError(
                 f"Motion-energy HDF5 not found for video={video_id}, "
-                f"direction={direction!r}, highest_freq={highest_freq}: "
+                f"direction={direction!r}, bank={canonical!r}: "
                 f"{h5_path}"
             )
         with h5py.File(h5_path, "r") as f:

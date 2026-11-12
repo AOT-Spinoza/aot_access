@@ -1,4 +1,5 @@
 import nibabel as nib
+from pathlib import Path
 
 from AOTaccess.config import Config
 from AOTaccess.errors import DataNotFoundError
@@ -33,11 +34,21 @@ class GLMSingleAccess:
 
         Parameters:
             stctype (str): Slice-timing-correction type, default "nordicstc".
-            root_dir: If given, resolve paths relative to this dataset root.
+            root_dir: A dataset root (paths resolved relative to it), or - for
+                backwards compatibility with older call sites - the GLMSingle
+                directory itself (recognised when it already contains
+                ``per_session``).
             config (Config): An explicit Config; takes precedence over root_dir.
         """
         self.config = config if config is not None else Config(root_dir=root_dir)
         glmsingle_dir = self.config.path("glmsingle")
+        if root_dir is not None and not (glmsingle_dir / "per_session").is_dir():
+            # Older call sites pass the GLMSingle directory as ``root_dir``,
+            # which the layout lookup would then nest twice
+            # (<glmsingle>/derivatives/glmsingle). Accept it directly instead.
+            candidate = Path(root_dir)
+            if (candidate / "per_session").is_dir():
+                glmsingle_dir = candidate
         self.glmsingle_main_dir = glmsingle_dir / "per_session"
         self.video_betas_dir = glmsingle_dir / "per_video"
         self.stctype = stctype

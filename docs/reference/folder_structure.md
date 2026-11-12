@@ -77,8 +77,8 @@ annotations/NNNN_{fw,rv}.mp4/
   depth_estimation/MiDaS/...{hdf5,mp4}
   instance_segmentation/MaskRCNN_ResNet50_FPN/...{hdf5,mp4}
   keypoints/KeypointRCNN_ResNet50/...{hdf5,mp4}
-  motion_energy/{16hz,32hz}/NNNN_{fw,rv}.h5     # /motion_energy (n_frames, n_filters), /motion_energy_summary (n_filters,)
-  motion_energy/{16hz,32hz}/NNNN_{fw,rv}.npy    # legacy per-frame; phased out as the .h5 conversion lands
+  motion_energy/{source_16hz,source_32hz,display}/NNNN_{fw,rv}.h5     # /motion_energy (n_frames, n_filters), /motion_energy_summary (n_filters,)
+  motion_energy/{source_16hz,source_32hz}/NNNN_{fw,rv}.npy    # legacy; display bank is .h5 only    # legacy per-frame; phased out as the .h5 conversion lands
   object_detection/fasterrcnn_resnet50_fpn_v2/...{hdf5,mp4}
   qwen_description/...txt
   qwen_embedding/..._embedding.json
