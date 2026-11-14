@@ -48,6 +48,7 @@ def test_root_dir_mode_uses_canonical_layout():
     assert cfg.path("localizers") == Path("/ds/derivatives/localizers")
     assert cfg.path("transforms") == Path("/ds/derivatives/transforms")
     assert cfg.path("freesurfer") == Path("/ds/derivatives/freesurfer_AOT")
+    assert cfg.path("pycortex") == Path("/ds/derivatives/pycortex")
 
 
 def test_root_dir_mode_unknown_key_raises():
@@ -79,6 +80,6 @@ def test_packaged_settings_has_required_keys():
     cfg = Config()
     for key in (
         "glmsingle", "preproced", "bids", "roi", "localizers",
-        "transforms", "freesurfer",
+        "transforms", "freesurfer", "pycortex",
     ):
         assert isinstance(cfg.path(key), Path)

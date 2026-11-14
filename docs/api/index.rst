@@ -30,3 +30,4 @@ docstrings in source.
    explog_access
    anatomy_access
    freesurfer_access
+   pycortex_access

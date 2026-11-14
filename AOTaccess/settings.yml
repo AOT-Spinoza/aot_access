@@ -14,6 +14,7 @@ paths:
   localizers: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/localizers"
   transforms: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/transforms"
   freesurfer: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/freesurfer_AOT"
+  pycortex: "/research/FGB-CognitivePsychology-Knapen/shared/2024/visual/AOT/derivatives/pycortex"
 
 parameters:
   run_number: 10

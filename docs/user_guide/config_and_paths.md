@@ -37,6 +37,8 @@ cfg.path("glmsingle")    # /scratch/me/aot_copy/derivatives/glmsingle
 cfg.path("roi")          # /scratch/me/aot_copy/derivatives/roi
 cfg.path("freesurfer")   # /scratch/me/aot_copy/derivatives/freesurfer_AOT
 cfg.path("transforms")   # /scratch/me/aot_copy/derivatives/transforms
+cfg.path("freesurfer")   # /scratch/me/aot_copy/derivatives/freesurfer_AOT
+cfg.path("pycortex")     # /scratch/me/aot_copy/derivatives/pycortex
 ```
 
 ## Sharing a Config

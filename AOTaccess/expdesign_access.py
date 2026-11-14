@@ -23,7 +23,7 @@ class ExpDesignAccess:
                 self.root_expdesign_dir = candidate
         self.run_number = self.config.param("run_number", 10)
 
-    def read_expdesign_file(self, sub: int, ses: int, run: int):
+    def read_expdesign_file(self, sub: int, ses: int, run: int, quiet: bool = False):
         """
         Read the experiment design file for a specific subject, session, and run.
 
@@ -41,7 +41,8 @@ class ExpDesignAccess:
         )
 
         expdesign = yaml.safe_load(open(expdesign_file))
-        print(f"Loaded expdesign from {expdesign_file}")
+        if not quiet:
+            print(f"Loaded expdesign from {expdesign_file}")
         return expdesign
 
     def read_session_expdesign(self, sub: int, ses: int):

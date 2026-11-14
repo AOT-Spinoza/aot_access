@@ -39,6 +39,7 @@ _RELATIVE_LAYOUT = {
     "anatomy": "derivatives/anat-3T",
     "transforms": "derivatives/transforms",
     "freesurfer": "derivatives/freesurfer_AOT",
+    "pycortex": "derivatives/pycortex",
     "AOTdesignsettings": (
         "code/arrow_of_time_experiment/aot/data/experiment/settings/main",
         "aot/data/experiment/settings/main",
