@@ -113,3 +113,52 @@ class AnatomyAccess:
                 f"(sub={sub}, resolution={resolution})"
             )
         return nib.load(path)
+
+    # ------------------------------------------------------------------
+    # fiducial T2w target + brain mask (registration display videos)
+    # ------------------------------------------------------------------
+    def t2w_fiducial_path(self, sub, resolution="2p0mm"):
+        """Path to the cropped T2w fiducial target on the EPI grid.
+
+        This is the anatomy the registration display videos outline in cyan;
+        it shares shape/affine with ``space-T1w_res-{resolution}`` derivatives.
+        """
+        sub_t = fmt_sub(sub)
+        return (
+            self.config.anatomy_root()
+            / f"sub-{sub_t}"
+            / "fiducial"
+            / f"res-{resolution}"
+            / f"sub-{sub_t}_ses-3Tanat_T2w_brain_T2BM_crop_resampled.nii.gz"
+        )
+
+    def fiducial_mask_path(self, sub, resolution="2p0mm"):
+        """Path to the brain mask that accompanies the fiducial T2w target."""
+        sub_t = fmt_sub(sub)
+        return (
+            self.config.anatomy_root()
+            / f"sub-{sub_t}"
+            / "fiducial"
+            / f"res-{resolution}"
+            / f"sub-{sub_t}_ses-3Tanat_T2w_brainmask_T2BM_crop_resampled.nii.gz"
+        )
+
+    def read_t2w_fiducial(self, sub, resolution="2p0mm"):
+        """Read the cropped T2w fiducial target."""
+        path = self.t2w_fiducial_path(sub, resolution=resolution)
+        if not path.exists():
+            raise DataNotFoundError(
+                f"Anatomy fiducial T2w not found: {path} "
+                f"(sub={sub}, resolution={resolution})"
+            )
+        return nib.load(path)
+
+    def read_fiducial_mask(self, sub, resolution="2p0mm"):
+        """Read the fiducial brain mask."""
+        path = self.fiducial_mask_path(sub, resolution=resolution)
+        if not path.exists():
+            raise DataNotFoundError(
+                f"Anatomy fiducial brain mask not found: {path} "
+                f"(sub={sub}, resolution={resolution})"
+            )
+        return nib.load(path)

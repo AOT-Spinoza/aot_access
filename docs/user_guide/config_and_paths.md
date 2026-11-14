@@ -35,6 +35,8 @@ relative to one dataset root, using the canonical layout in
 cfg = Config(root_dir="/scratch/me/aot_copy")
 cfg.path("glmsingle")    # /scratch/me/aot_copy/derivatives/glmsingle
 cfg.path("roi")          # /scratch/me/aot_copy/derivatives/roi
+cfg.path("freesurfer")   # /scratch/me/aot_copy/derivatives/freesurfer_AOT
+cfg.path("transforms")   # /scratch/me/aot_copy/derivatives/transforms
 ```
 
 ## Sharing a Config

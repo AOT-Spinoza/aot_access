@@ -51,6 +51,7 @@ brain coordinates, and round-trips back to NIfTI.
    user_guide/discovery
    user_guide/subject_api
    user_guide/brain_mask_and_flat_voxels
+   user_guide/freesurfer
    user_guide/rois_and_groupings
    user_guide/localizers
    user_guide/config_and_paths

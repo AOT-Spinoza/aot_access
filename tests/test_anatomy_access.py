@@ -79,3 +79,47 @@ def test_missing_subject_raises_data_not_found(aot_config):
     a = AnatomyAccess(config=aot_config)
     with pytest.raises(DataNotFoundError):
         a.read_gray_matter_mask(99, resolution="2p0mm", variant="cortex")
+
+
+# ---------------------------------------------------------------------------
+# synthetic (root_dir) coverage for the fiducial T2w target and brain mask
+# ---------------------------------------------------------------------------
+import numpy as _np
+import nibabel as _nib
+
+
+def _save_nii(path, data=None):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    arr = _np.zeros((4, 4, 4), dtype=_np.float32) if data is None else _np.asarray(data)
+    _nib.save(_nib.Nifti1Image(arr, _np.eye(4)), str(path))
+
+
+@pytest.fixture
+def synthetic_anatomy(tmp_path):
+    root = tmp_path / "derivatives" / "anat-3T"
+    fid = root / "sub-004" / "fiducial" / "res-1p25mm"
+    _save_nii(fid / "sub-004_ses-3Tanat_T2w_brain_T2BM_crop_resampled.nii.gz")
+    _save_nii(fid / "sub-004_ses-3Tanat_T2w_brainmask_T2BM_crop_resampled.nii.gz")
+    return tmp_path
+
+
+def test_t2w_fiducial_path(synthetic_anatomy):
+    a = AnatomyAccess(root_dir=synthetic_anatomy)
+    path = a.t2w_fiducial_path(4, resolution="1p25mm")
+    assert path.exists()
+    assert path.name == "sub-004_ses-3Tanat_T2w_brain_T2BM_crop_resampled.nii.gz"
+
+
+def test_fiducial_mask_path_and_reads(synthetic_anatomy):
+    a = AnatomyAccess(root_dir=synthetic_anatomy)
+    assert a.fiducial_mask_path(4, resolution="1p25mm").exists()
+    assert a.read_t2w_fiducial(4, resolution="1p25mm").shape == (4, 4, 4)
+    assert a.read_fiducial_mask(4, resolution="1p25mm").shape == (4, 4, 4)
+
+
+def test_fiducial_readers_missing_raise(synthetic_anatomy):
+    a = AnatomyAccess(root_dir=synthetic_anatomy)
+    with pytest.raises(DataNotFoundError):
+        a.read_t2w_fiducial(4, resolution="2p0mm")
+    with pytest.raises(DataNotFoundError):
+        a.read_fiducial_mask(4, resolution="2p0mm")

@@ -37,6 +37,8 @@ _RELATIVE_LAYOUT = {
     "roi": "derivatives/roi",
     "localizers": "derivatives/localizers",
     "anatomy": "derivatives/anat-3T",
+    "transforms": "derivatives/transforms",
+    "freesurfer": "derivatives/freesurfer_AOT",
     "AOTdesignsettings": (
         "code/arrow_of_time_experiment/aot/data/experiment/settings/main",
         "aot/data/experiment/settings/main",

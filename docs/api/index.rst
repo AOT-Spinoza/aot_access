@@ -29,3 +29,4 @@ docstrings in source.
    stimulus_info_access
    explog_access
    anatomy_access
+   freesurfer_access

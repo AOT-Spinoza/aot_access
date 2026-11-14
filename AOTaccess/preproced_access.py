@@ -16,6 +16,29 @@ class PreprocedAccess:
         self.config = config if config is not None else Config(root_dir=root_dir)
         self.root_preproced_dir = self.config.path("preproced")
 
+    def func_path(
+        self,
+        sub: int,
+        ses: int,
+        run: int,
+        task: str = "AOT",
+        resolution: str = "2p0mm",
+    ):
+        """Path to one preprocessed functional image (no existence check).
+
+        The filename follows the AOT BIDS naming; ``task`` covers the
+        ``task-AOT``, ``task-pRF``, ``task-fLoc`` and ``task-Dur`` scopes.
+        """
+        # example file: derivatives/aot_prep/sub-001/ses-01/func/sub-001_ses-01_task-AOT_rec-nordicstc_run-01_part-mag_bold_space-T1w_res-2p0mm.nii.gz
+        sub_t = fmt_sub(sub)
+        ses_t = fmt_ses(ses)
+        run_t = fmt_run(run)
+        filename = (
+            f"sub-{sub_t}_ses-{ses_t}_task-{task}_rec-nordicstc_run-{run_t}"
+            f"_part-mag_bold_space-T1w_res-{resolution}.nii.gz"
+        )
+        return self.root_preproced_dir / f"sub-{sub_t}/ses-{ses_t}/func" / filename
+
     def read_func(
         self,
         sub: int,
@@ -37,15 +60,7 @@ class PreprocedAccess:
             nibabel.nifti1.Nifti1Image: The preprocessed functional image.
         """
 
-        # example file: derivatives/aot_prep/sub-001/ses-01/func/sub-001_ses-01_task-AOT_rec-nordicstc_run-01_part-mag_bold_space-T1w_res-2p0mm.nii.gz
-        sub = fmt_sub(sub)
-        ses = fmt_ses(ses)
-        run = fmt_run(run)
-
-        filename = f"sub-{sub}_ses-{ses}_task-{task}_rec-nordicstc_run-{run}_part-mag_bold_space-T1w_res-{resolution}.nii.gz"
-
-        filepath = self.root_preproced_dir / f"sub-{sub}/ses-{ses}/func" / filename
-
+        filepath = self.func_path(sub, ses, run, task=task, resolution=resolution)
         if not filepath.exists():
             raise DataNotFoundError(
                 f"Preprocessed BOLD not found: {filepath} "
