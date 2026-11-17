@@ -3,7 +3,7 @@
 The flatmap display tools need the precomputed quickflat caches under
 ``derivatives/pycortex/db/<sub>/cache`` plus the 2 mm volume reference and the
 flatmap coordinate transform.  Rebuilding the caches from FreeSurfer GIFTI
-surfaces is a *display-side* concern (see the ``quality_display`` package); this
+surfaces is a *display-side* concern (see the ``QA_display`` package); this
 module only resolves and validates the stored files.
 """
 
