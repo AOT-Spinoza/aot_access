@@ -64,7 +64,7 @@ def sub1(aot_config):
 
 @pytest.mark.cluster
 def test_discovery_methods(sub1):
-    assert sub1.sessions() == list(range(1, 11))
+    assert sub1.sessions() == list(range(1, 13)) + ['fLocDur']
     assert sub1.runs(1) == list(range(1, 11))
     assert len(sub1.videos()) > 0
 
@@ -104,8 +104,8 @@ def test_get_video_betas_two_repetitions(sub1):
 @pytest.mark.cluster
 def test_trial_table_structure(sub1):
     t = sub1.trial_table()
-    assert len(t) == 8_400                        # 10 ses * 10 run * 84 events
-    assert int(t.is_blank.sum()) == 1_200         # 12 blanks/run * 100
+    assert len(t) == 10_080                       # 12 ses * 10 run * 84 events
+    assert int(t.is_blank.sum()) == 1_440         # 12 blanks/run * 120
     # every (video, direction) appears exactly twice across the subject, with rep ∈ {0, 1}
     stim = t[~t.is_blank]
     grouped = stim.groupby(["video", "direction"]).rep.agg(["min", "max", "count"])

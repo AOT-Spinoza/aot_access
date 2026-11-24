@@ -28,7 +28,7 @@ def test_group_shared_videos(aot_config):
 @pytest.mark.cluster
 def test_group_shared_sessions(aot_config):
     g = AOTGroup([1, 2], config=aot_config)
-    assert g.shared_sessions() == list(range(1, 11))
+    assert g.shared_sessions() == list(range(1, 13)) + ['fLocDur']
 
 
 @pytest.mark.cluster

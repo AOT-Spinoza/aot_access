@@ -1,7 +1,7 @@
 """BIDS-style identifier formatting, shared across the access modules.
 
 Subjects and runs are integers and get zero-padded. Sessions may be integers
-(the main AOT task — ``ses-01`` … ``ses-10``) or strings (localizer sessions
+(the main AOT task — ``ses-01`` … ``ses-12``) or strings (localizer sessions
 such as ``pRF``, ``fLOC``, ``time``); :func:`fmt_ses` handles both. Each helper
 also accepts an already-formatted value or a full ``sub-``/``ses-``/``run-``
 token and returns the bare identifier, so callers can pass either form.

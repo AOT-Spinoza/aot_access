@@ -40,7 +40,7 @@ def subjects(config=None):
 def sessions(sub, config=None):
     """Sessions present for a subject's main-task GLMsingle outputs.
 
-    Returns a sorted list — integers for AOT-task sessions (``1`` … ``10``)
+    Returns a sorted list — integers for AOT-task sessions (``1`` … ``12``)
     and strings for non-integer session labels (e.g. ``"pRF"``) if present.
     """
     cfg = _cfg(config)

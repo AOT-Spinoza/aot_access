@@ -15,7 +15,7 @@ def test_subjects_returns_known_ids(aot_config):
 
 @pytest.mark.cluster
 def test_sessions_for_subject(aot_config):
-    assert discovery.sessions(1, config=aot_config) == list(range(1, 11))
+    assert discovery.sessions(1, config=aot_config) == list(range(1, 13)) + ['fLocDur']
 
 
 @pytest.mark.cluster
